@@ -1,6 +1,9 @@
 package com.elixirpay.elixirpaycat.helper;
 
 import android.text.TextUtils;
+
+import com.elixirpay.elixirpaycat.helper.command.Align;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

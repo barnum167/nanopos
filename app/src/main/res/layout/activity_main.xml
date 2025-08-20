@@ -1,19 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#f5f5f5"
     tools:context=".MainActivity">
 
+    <!-- 타이틀 -->
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:text="ttyS4 프린터"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="@drawable/rounded_background"
+        android:layout_marginBottom="16dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- 상태 표시 -->
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="프린터 준비 중..."
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:padding="16dp"
+        android:background="@drawable/status_background"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:minHeight="100dp" />
+
+    <!-- 버튼 -->
+    <Button
+        android:id="@+id/btn_print"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🖨️ 프린트 실행 (ttyS4)"
+        android:textSize="18sp"
+        android:textColor="#ffffff"
+        android:background="@drawable/button_green"
+        android:padding="20dp"
+        android:layout_marginBottom="16dp"
+        android:elevation="2dp" />
+
+    <!-- 정보 표시 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📋 프린터 설정 정보"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="• 고정 포트: /dev/ttyS4\n• 전송 속도: 115200 bps\n• 프로토콜: EPSON ESC/POS\n• 인코딩: UTF-8\n• 바로 프린트 가능\n• 로그 태그: NDP_PRINTER"
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:padding="12dp"
+        android:background="@drawable/info_background"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 로그 안내 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📱 로깅 정보"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="• ttyS4 포트 상태 확인\n• 데이터 전송 과정 (크기, 시간, 상태)\n• 프린터 응답 및 오류 분석\n• 실제 하드웨어 연결 상태 진단"
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:padding="12dp"
+        android:background="@drawable/log_info_background"
+        android:lineSpacingExtra="3dp" />
+
+    <!-- 하단 여백 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- 버전 정보 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="NDP POS v2.0 | ttyS4 전용 | 원클릭 프린트"
+        android:textSize="12sp"
+        android:textColor="#999999"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
