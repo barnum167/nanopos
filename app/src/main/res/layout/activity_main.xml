@@ -1,108 +1,328 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
     android:background="#f5f5f5"
     tools:context=".MainActivity">
 
-    <!-- 타이틀 -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ttyS4 프린터"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#333333"
-        android:gravity="center"
-        android:padding="16dp"
-        android:background="@drawable/rounded_background"
-        android:layout_marginBottom="16dp" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <!-- 상태 표시 -->
-    <TextView
-        android:id="@+id/tv_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="프린터 준비 중..."
-        android:textSize="14sp"
-        android:textColor="#666666"
-        android:padding="16dp"
-        android:background="@drawable/status_background"
-        android:layout_marginBottom="16dp"
-        android:gravity="center"
-        android:minHeight="100dp" />
+        <!-- 타이틀 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💳 QR 결제 코드 생성 &amp; 스캔"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:gravity="center"
+            android:padding="16dp"
+            android:background="@drawable/rounded_background"
+            android:layout_marginBottom="16dp" />
 
-    <!-- 버튼 -->
-    <Button
-        android:id="@+id/btn_print"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🖨️ 프린트 실행 (ttyS4)"
-        android:textSize="18sp"
-        android:textColor="#ffffff"
-        android:background="@drawable/button_green"
-        android:padding="20dp"
-        android:layout_marginBottom="16dp"
-        android:elevation="2dp" />
+        <!-- QR 코드 생성 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎯 QR 결제 코드 생성"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#2E7D32"
+            android:layout_marginBottom="12dp" />
 
-    <!-- 정보 표시 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="📋 프린터 설정 정보"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#333333"
-        android:layout_marginBottom="8dp" />
+        <!-- 결제 정보 입력 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/rounded_background"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="• 고정 포트: /dev/ttyS4\n• 전송 속도: 115200 bps\n• 프로토콜: EPSON ESC/POS\n• 인코딩: UTF-8\n• 바로 프린트 가능\n• 로그 태그: NDP_PRINTER"
-        android:textSize="13sp"
-        android:textColor="#666666"
-        android:padding="12dp"
-        android:background="@drawable/info_background"
-        android:lineSpacingExtra="4dp"
-        android:layout_marginBottom="16dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="결제 금액 (원):"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
 
-    <!-- 로그 안내 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="📱 로깅 정보"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#333333"
-        android:layout_marginBottom="8dp" />
+            <EditText
+                android:id="@+id/et_payment_amount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="10000"
+                android:inputType="number"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:background="@drawable/status_background"
+                android:layout_marginBottom="12dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="• ttyS4 포트 상태 확인\n• 데이터 전송 과정 (크기, 시간, 상태)\n• 프린터 응답 및 오류 분석\n• 실제 하드웨어 연결 상태 진단"
-        android:textSize="13sp"
-        android:textColor="#666666"
-        android:padding="12dp"
-        android:background="@drawable/log_info_background"
-        android:lineSpacingExtra="3dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="가맹점명:"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
 
-    <!-- 하단 여백 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+            <EditText
+                android:id="@+id/et_merchant_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="나노데이터센터"
+                android:inputType="text"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:background="@drawable/status_background"
+                android:layout_marginBottom="12dp" />
 
-    <!-- 버전 정보 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="NDP POS v2.0 | ttyS4 전용 | 원클릭 프린트"
-        android:textSize="12sp"
-        android:textColor="#999999"
-        android:gravity="center"
-        android:layout_marginTop="8dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="주문 설명 (선택사항):"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
 
-</LinearLayout>
+            <EditText
+                android:id="@+id/et_payment_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="상품 구매"
+                android:inputType="text"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:background="@drawable/status_background"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/btn_generate_qr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🎯 QR 코드 생성"
+                android:textSize="16sp"
+                android:textColor="#ffffff"
+                android:background="@drawable/button_green"
+                android:padding="16dp" />
+        </LinearLayout>
+
+        <!-- 생성된 QR 코드 표시 -->
+        <TextView
+            android:id="@+id/tv_qr_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📱 생성된 QR 코드"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layout_qr_display"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/rounded_background"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/iv_generated_qr"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_gravity="center"
+                android:background="#ffffff"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:layout_marginBottom="12dp"
+                android:contentDescription="생성된 QR 코드" />
+
+            <TextView
+                android:id="@+id/tv_qr_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:layout_marginBottom="12dp" />
+
+            <Button
+                android:id="@+id/btn_print_generated_qr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🖨️ 생성된 QR 코드 인쇄"
+                android:textSize="16sp"
+                android:textColor="#ffffff"
+                android:background="@drawable/button_blue"
+                android:padding="16dp" />
+        </LinearLayout>
+
+        <!-- 구분선 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="#E0E0E0"
+            android:layout_marginVertical="16dp" />
+
+        <!-- QR 스캔 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📷 QR 코드 스캔"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#1976D2"
+            android:layout_marginBottom="12dp" />
+
+        <!-- QR 스캔 버튼 -->
+        <Button
+            android:id="@+id/btn_scan_qr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📷 QR 코드 스캔"
+            android:textSize="18sp"
+            android:textColor="#ffffff"
+            android:background="@drawable/button_blue"
+            android:padding="20dp"
+            android:layout_marginBottom="12dp"
+            android:elevation="2dp" />
+
+        <!-- 수동 입력 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✏️ 또는 직접 입력:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_qr_content"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:hint="QR 코드 내용을 직접 입력하세요..."
+            android:textSize="14sp"
+            android:padding="12dp"
+            android:background="@drawable/rounded_background"
+            android:gravity="top|start"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="5"
+            android:scrollbars="vertical"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btn_manual_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✏️ 수동 입력 확인"
+            android:textSize="16sp"
+            android:textColor="#ffffff"
+            android:background="@drawable/button_orange"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 마지막 스캔 결과 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📋 스캔/입력 결과:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_last_scan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="QR 코드를 생성, 스캔하거나 직접 입력하세요"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:padding="16dp"
+            android:background="@drawable/status_background"
+            android:layout_marginBottom="16dp"
+            android:minHeight="80dp"
+            android:gravity="start|top" />
+
+        <!-- 프린트 버튼 -->
+        <Button
+            android:id="@+id/btn_print"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🖨️ 스캔/입력 내용 프린트"
+            android:textSize="18sp"
+            android:textColor="#ffffff"
+            android:background="@drawable/button_green"
+            android:padding="20dp"
+            android:layout_marginBottom="16dp"
+            android:elevation="2dp"
+            android:enabled="false" />
+
+        <!-- 상태 표시 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📊 프린터 상태:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="프린터 준비 중..."
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:padding="16dp"
+            android:background="@drawable/info_background"
+            android:layout_marginBottom="16dp"
+            android:minHeight="100dp"
+            android:gravity="center" />
+
+        <!-- 정보 표시 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚙️ 시스템 정보"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• 프린터 포트: /dev/ttyS4\n• 전송 속도: 115200 bps\n• 프로토콜: EPSON ESC/POS\n• QR 지원: ZXing 라이브러리\n• QR 생성: 512x512 픽셀\n• Android 6.0+ 호환"
+            android:textSize="13sp"
+            android:textColor="#666666"
+            android:padding="12dp"
+            android:background="@drawable/log_info_background"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 버전 정보 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NDP QR Generator v4.0 | QR Generate + Scan + Print | ttyS4 Port"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>

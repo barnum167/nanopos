@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">NDP 프린터</string>
+    <string name="app_name">NDP QR 프린터</string>
     <string name="printer_test">프린터 테스트</string>
     <string name="check_connection">프린터 연결 확인</string>
     <string name="test_print">테스트 프린트 실행</string>

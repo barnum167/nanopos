@@ -80,6 +80,54 @@ class PrinterHelper {
     }
     
     /**
+     * QR 코드 내용 프린트용 데이터 생성
+     */
+    fun createQrContentPrintData(qrContent: String): ByteArray {
+        Log.d(TAG, "QR 내용 데이터 생성 시작: '$qrContent'")
+        
+        val commands = mutableListOf<Byte>()
+        var commandCount = 0
+        
+        // 초기화 및 언어 설정
+        Log.d(TAG, "명령어 ${++commandCount}: 초기화 및 언어 설정")
+        val initCommands = getInitCommands()
+        commands.addAll(initCommands)
+        logHexData("초기화 명령", initCommands)
+        
+        // 헤더
+        Log.d(TAG, "명령어 ${++commandCount}: 헤더 생성")
+        val headerCommands = createHeader("📱 QR 코드 내용 📱")
+        commands.addAll(headerCommands)
+        logHexData("헤더 명령", headerCommands)
+        
+        // QR 내용 표시
+        Log.d(TAG, "명령어 ${++commandCount}: QR 내용 생성")
+        val contentCommands = createQrContentSection(qrContent)
+        commands.addAll(contentCommands)
+        
+        // 푸터
+        Log.d(TAG, "명령어 ${++commandCount}: 푸터 생성")  
+        val footerCommands = createFooter("✅ QR 스캔 완료 ✅")
+        commands.addAll(footerCommands)
+        logHexData("푸터 명령", footerCommands)
+        
+        // 용지 자르기
+        Log.d(TAG, "명령어 ${++commandCount}: 용지 자르기")
+        val cutCommands = getPaperCutCommand()
+        commands.addAll(cutCommands)
+        logHexData("용지 자르기 명령", cutCommands)
+        
+        val result = commands.toByteArray()
+        
+        Log.i(TAG, "═══════════════ QR 데이터 생성 완료 ═══════════════")
+        Log.i(TAG, "QR 내용: '$qrContent'")
+        Log.i(TAG, "총 명령어 수: $commandCount")
+        Log.i(TAG, "총 데이터 크기: ${result.size} bytes")
+        
+        return result
+    }
+
+    /**
      * 간단한 텍스트 프린트용 데이터 생성
      */
     fun createSimpleTextData(text: String): ByteArray {
@@ -203,6 +251,54 @@ class PrinterHelper {
         return commands
     }
     
+    private fun createQrContentSection(qrContent: String): List<Byte> {
+        Log.d(TAG, "QR 내용 섹션 생성: '$qrContent'")
+        val commands = mutableListOf<Byte>()
+        
+        // 구분선
+        commands.addAll(createSeparatorLine())
+        
+        // 스캔 시간
+        val currentTime = getCurrentFormattedTime()
+        commands.addAll(createItemLine("스캔 시간", currentTime))
+        commands.addAll(getLineFeed())
+        
+        // QR 내용 라벨
+        commands.addAll(getNormalFont())
+        commands.addAll(getAlignLeft())
+        commands.addAll(convertStringToBytes("📋 QR 코드 내용:"))
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        
+        // QR 내용 (긴 텍스트는 여러 줄로 분할)
+        commands.addAll(getAlignLeft())
+        val wrappedContent = wrapText(qrContent, 40)
+        for (line in wrappedContent) {
+            commands.addAll(convertStringToBytes("  $line"))
+            commands.addAll(getLineFeed())
+        }
+        commands.addAll(getLineFeed())
+        
+        // 내용 길이 정보
+        commands.addAll(createItemLine("내용 길이", "${qrContent.length} 글자"))
+        
+        // URL 패턴 체크 및 정보 표시
+        if (isUrl(qrContent)) {
+            commands.addAll(createItemLine("타입", "🌐 웹사이트 URL"))
+        } else if (isEmail(qrContent)) {
+            commands.addAll(createItemLine("타입", "📧 이메일 주소"))
+        } else if (isPhoneNumber(qrContent)) {
+            commands.addAll(createItemLine("타입", "📞 전화번호"))
+        } else {
+            commands.addAll(createItemLine("타입", "📝 일반 텍스트"))
+        }
+        
+        commands.addAll(createSeparatorLine())
+        
+        Log.d(TAG, "QR 내용 섹션 생성 완료: ${commands.size} bytes")
+        return commands
+    }
+
     private fun createTestContent(): List<Byte> {
         Log.d(TAG, "테스트 내용 생성")
         val commands = mutableListOf<Byte>()
@@ -326,5 +422,70 @@ class PrinterHelper {
     private fun getPaperCutCommand(): List<Byte> {
         Log.d(TAG, "용지 자르기 명령 (GS V B 1)")
         return listOf(0x1D.toByte(), 0x56.toByte(), 0x42.toByte(), 0x01.toByte())
+    }
+    
+    /**
+     * 현재 시간을 포맷팅해서 반환
+     */
+    private fun getCurrentFormattedTime(): String {
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        return dateFormat.format(java.util.Date())
+    }
+    
+    /**
+     * 텍스트를 지정된 폭으로 감싸기
+     */
+    private fun wrapText(text: String, width: Int): List<String> {
+        if (text.isEmpty()) return listOf("")
+        
+        val words = text.split("\\s+".toRegex())
+        val lines = mutableListOf<String>()
+        var currentLine = StringBuilder()
+        
+        for (word in words) {
+            val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+            
+            if (getDisplayLength(testLine) <= width) {
+                currentLine = StringBuilder(testLine)
+            } else {
+                if (currentLine.isNotEmpty()) {
+                    lines.add(currentLine.toString())
+                    currentLine = StringBuilder(word)
+                } else {
+                    // 단어가 너무 길면 강제로 자르기
+                    lines.add(truncateToDisplayLength(word, width))
+                }
+            }
+        }
+        
+        if (currentLine.isNotEmpty()) {
+            lines.add(currentLine.toString())
+        }
+        
+        return lines.ifEmpty { listOf("") }
+    }
+    
+    /**
+     * URL 패턴 체크
+     */
+    private fun isUrl(text: String): Boolean {
+        return text.startsWith("http://", ignoreCase = true) || 
+               text.startsWith("https://", ignoreCase = true) ||
+               text.startsWith("www.", ignoreCase = true)
+    }
+    
+    /**
+     * 이메일 패턴 체크
+     */
+    private fun isEmail(text: String): Boolean {
+        return text.contains("@") && text.contains(".")
+    }
+    
+    /**
+     * 전화번호 패턴 체크
+     */
+    private fun isPhoneNumber(text: String): Boolean {
+        val phonePattern = "^[+]?[0-9\\-\\s\\(\\)]{8,}$".toRegex()
+        return phonePattern.matches(text.trim())
     }
 }
