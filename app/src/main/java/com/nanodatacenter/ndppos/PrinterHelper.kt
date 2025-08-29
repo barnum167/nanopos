@@ -32,9 +32,9 @@ class PrinterHelper {
         commands.addAll(initCommands)
         logHexData("초기화 명령", initCommands)
         
-        // 헤더
+        // 헤더 - ✅ 이모지 제거
         Log.d(TAG, "명령어 ${++commandCount}: 헤더 생성")
-        val headerCommands = createHeader("🖨️ 프린터 테스트 🖨️")
+        val headerCommands = createHeader("*** 프린터 테스트 ***")
         commands.addAll(headerCommands)
         logHexData("헤더 명령", headerCommands)
         
@@ -44,9 +44,9 @@ class PrinterHelper {
         commands.addAll(contentCommands)
         logHexData("내용 명령", contentCommands.take(50)) // 처음 50바이트만
         
-        // 푸터
+        // 푸터 - ✅ 이모지 제거
         Log.d(TAG, "명령어 ${++commandCount}: 푸터 생성")
-        val footerCommands = createFooter("✅ 테스트 완료 ✅")
+        val footerCommands = createFooter("*** 테스트 완료 ***")
         commands.addAll(footerCommands)
         logHexData("푸터 명령", footerCommands)
         
@@ -81,9 +81,9 @@ class PrinterHelper {
     }
     
     /**
-     * 인코딩을 지정하여 프린트 데이터 생성
+     * 인코딩을 지정하여 프린트 데이터 생성 - ✅ 기본 인코딩 EUC-KR로 변경
      */
-    fun createEncodedPrintData(content: String, encoding: String = "UTF-8"): ByteArray {
+    fun createEncodedPrintData(content: String, encoding: String = "EUC-KR"): ByteArray {
         Log.d(TAG, "인코딩 프린트 데이터 생성: '$content' (인코딩: $encoding)")
         
         val commands = mutableListOf<Byte>()
@@ -103,14 +103,14 @@ class PrinterHelper {
             }
         }
         
-        // 헤더
-        commands.addAll(createHeader("📄 인쇄 내용 📄"))
+        // 헤더 - ✅ 이모지 제거
+        commands.addAll(createHeader("*** 인쇄 내용 ***"))
         
         // 내용
         commands.addAll(createContentSection(content, encoding))
         
-        // 푸터
-        commands.addAll(createFooter("✅ 인쇄 완료 ✅"))
+        // 푸터 - ✅ 이모지 제거
+        commands.addAll(createFooter("*** 인쇄 완료 ***"))
         
         // 용지 자르기
         commands.addAll(getPaperCutCommand())
@@ -177,9 +177,9 @@ class PrinterHelper {
         commands.addAll(initCommands)
         logHexData("초기화 명령", initCommands)
         
-        // 헤더
+        // 헤더 - ✅ 이모지 제거
         Log.d(TAG, "명령어 ${++commandCount}: 헤더 생성")
-        val headerCommands = createHeader("📱 QR 코드 내용 📱")
+        val headerCommands = createHeader("*** QR 코드 내용 ***")
         commands.addAll(headerCommands)
         logHexData("헤더 명령", headerCommands)
         
@@ -188,9 +188,9 @@ class PrinterHelper {
         val contentCommands = createQrContentSection(qrContent)
         commands.addAll(contentCommands)
         
-        // 푸터
+        // 푸터 - ✅ 이모지 제거
         Log.d(TAG, "명령어 ${++commandCount}: 푸터 생성")  
-        val footerCommands = createFooter("✅ QR 스캔 완료 ✅")
+        val footerCommands = createFooter("*** QR 스캔 완료 ***")
         commands.addAll(footerCommands)
         logHexData("푸터 명령", footerCommands)
         
@@ -231,9 +231,9 @@ class PrinterHelper {
     }
     
     /**
-     * 순수 텍스트만 출력 (헤더, 푸터, 부가정보 없음)
+     * 순수 텍스트만 출력 (헤더, 푸터, 부가정보 없음) - ✅ 기본 인코딩 EUC-KR로 변경
      */
-    fun createCleanTextData(content: String, encoding: String = "UTF-8"): ByteArray {
+    fun createCleanTextData(content: String, encoding: String = "EUC-KR"): ByteArray {
         Log.d(TAG, "순수 텍스트 데이터 생성: '$content' (인코딩: $encoding)")
         
         val commands = mutableListOf<Byte>()
@@ -293,7 +293,8 @@ class PrinterHelper {
 
 감사합니다."""
 
-        return createCleanTextData(testContent, "UTF-8")
+        // ✅ 수정: 기본 인코딩을 EUC-KR로 변경
+        return createCleanTextData(testContent, "EUC-KR")
     }
     
     /**
@@ -363,7 +364,7 @@ class PrinterHelper {
     private fun getInitCommands(): List<Byte> {
         Log.d(TAG, "초기화 명령어 생성")
         return listOf(0x1B.toByte(), 0x40.toByte()) + // ESC @ (초기화)
-               listOf(0x1B.toByte(), 0x59.toByte(), 0x48.toByte(), 0x43.toByte(), 0x01.toByte()) // 언어 설정
+               listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()) // ESC t 18 (한국어 코드페이지 CP949/EUC-KR)
     }
     
     private fun createHeader(title: String): List<Byte> {
@@ -412,10 +413,10 @@ class PrinterHelper {
         commands.addAll(createItemLine("스캔 시간", currentTime))
         commands.addAll(getLineFeed())
         
-        // QR 내용 라벨
+        // QR 내용 라벨 - ✅ 이모지 제거
         commands.addAll(getNormalFont())
         commands.addAll(getAlignLeft())
-        commands.addAll(convertStringToBytes("📋 QR 코드 내용:"))
+        commands.addAll(convertStringToBytes("[QR 코드 내용]"))
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
         
@@ -431,15 +432,15 @@ class PrinterHelper {
         // 내용 길이 정보
         commands.addAll(createItemLine("내용 길이", "${qrContent.length} 글자"))
         
-        // URL 패턴 체크 및 정보 표시
+        // URL 패턴 체크 및 정보 표시 - ✅ 이모지 제거
         if (isUrl(qrContent)) {
-            commands.addAll(createItemLine("타입", "🌐 웹사이트 URL"))
+            commands.addAll(createItemLine("타입", "웹사이트 URL"))
         } else if (isEmail(qrContent)) {
-            commands.addAll(createItemLine("타입", "📧 이메일 주소"))
+            commands.addAll(createItemLine("타입", "이메일 주소"))
         } else if (isPhoneNumber(qrContent)) {
-            commands.addAll(createItemLine("타입", "📞 전화번호"))
+            commands.addAll(createItemLine("타입", "전화번호"))
         } else {
-            commands.addAll(createItemLine("타입", "📝 일반 텍스트"))
+            commands.addAll(createItemLine("타입", "일반 텍스트"))
         }
         
         commands.addAll(createSeparatorLine())
@@ -532,12 +533,12 @@ class PrinterHelper {
     
     private fun convertStringToBytes(text: String): List<Byte> {
         return try {
-            val utf8Bytes = text.toByteArray(Charsets.UTF_8)
-            Log.d(TAG, "문자열 변환: '$text' -> ${utf8Bytes.size} bytes (UTF-8)")
-            utf8Bytes.toList()
+            val eucKrBytes = text.toByteArray(Charset.forName("EUC-KR"))
+            Log.d(TAG, "문자열 변환: '$text' -> ${eucKrBytes.size} bytes (EUC-KR)")
+            eucKrBytes.toList()
         } catch (e: Exception) {
-            Log.w(TAG, "UTF-8 변환 실패, 기본 인코딩 사용: ${e.message}")
-            text.toByteArray().toList()
+            Log.w(TAG, "EUC-KR 변환 실패, UTF-8 사용: ${e.message}")
+            text.toByteArray(Charsets.UTF_8).toList()
         }
     }
     

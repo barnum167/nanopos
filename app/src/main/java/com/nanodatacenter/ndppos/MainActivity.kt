@@ -56,6 +56,9 @@ class MainActivity : AppCompatActivity() {
         initializePrinter()
         setupClickListeners()
         checkServerConnection()
+        
+        // ✅ 추가: 앱 시작 시 인코딩 테스트
+        runEncodingTests()
     }
     
     private fun initializeComponents() {
@@ -427,5 +430,196 @@ class MainActivity : AppCompatActivity() {
         }
         
         Log.i(TAG, "NDP 프린터 앱 종료")
+    }
+    
+    /**
+     * ✅ 추가: 앱 시작 시 인코딩 및 시스템 테스트
+     */
+    private fun runEncodingTests() {
+        Thread {
+            try {
+                performComprehensiveTest()
+            } catch (e: Exception) {
+                Log.e(TAG, "전체 테스트 실행 오류: ${e.message}")
+            }
+        }.start()
+    }
+    
+    /**
+     * 전체 인코딩 및 프린터 출력 테스트
+     */
+    private fun performComprehensiveTest() {
+        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        Log.i(TAG, "종합 테스트 시작")
+        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
+        // 1. 인코딩 호환성 테스트
+        testEncodingCompatibility()
+        
+        // 2. 이모지 제거 테스트
+        testEmojiRemoval()
+        
+        // 3. 프린터 출력 테스트
+        testPrinterOutput()
+        
+        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        Log.i(TAG, "종합 테스트 완료")
+        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    }
+    
+    /**
+     * 1. 인코딩 호환성 테스트
+     */
+    private fun testEncodingCompatibility() {
+        Log.i(TAG, "=== 인코딩 호환성 테스트 ===")
+        
+        // EncodingHelper 정보 출력
+        EncodingHelper.logEncodingInfo()
+        
+        // 호환성 테스트 실행
+        val success = EncodingHelper.testEncodingCompatibility()
+        Log.i(TAG, "인코딩 호환성 테스트: ${if (success) "✅ 성공" else "❌ 실패"}")
+        
+        // 추가 테스트 케이스
+        val testCases = listOf(
+            "결제가 완료되었습니다",
+            "김치찌개 8,000원",
+            "거래 해시: 0x1234...5678",
+            "보내는 주소: 0xabcd...efgh"
+        )
+        
+        Log.i(TAG, "--- 추가 테스트 케이스 ---")
+        for ((index, testCase) in testCases.withIndex()) {
+            try {
+                val encoded = EncodingHelper.stringToBytes(testCase)
+                val decoded = EncodingHelper.bytesToString(encoded)
+                val match = testCase == decoded
+                
+                Log.i(TAG, "케이스 ${index + 1}: ${if (match) "✅" else "❌"} '$testCase'")
+                if (!match) {
+                    Log.w(TAG, "  원본: '$testCase'")
+                    Log.w(TAG, "  복원: '$decoded'")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "케이스 ${index + 1} 오류: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 2. 이모지 제거 테스트
+     */
+    private fun testEmojiRemoval() {
+        Log.i(TAG, "=== 이모지 제거 테스트 ===")
+        
+        val emojiTestCases = listOf(
+            "🧾 결제 영수증 🧾",
+            "📋 거래 정보",
+            "📍 주소 정보", 
+            "⏰ 처리 시간",
+            "✅ 결제가 완료되었습니다",
+            "🖨️ 프린터 테스트 🖨️",
+            "감사합니다! 😊"
+        )
+        
+        var allSuccess = true
+        for ((index, testCase) in emojiTestCases.withIndex()) {
+            val sanitized = EncodingHelper.sanitizeForPrinter(testCase)
+            val hasEmoji = testCase != sanitized
+            
+            Log.i(TAG, "이모지 테스트 ${index + 1}: ${if (hasEmoji) "✅ 제거됨" else "⚠️ 원본유지"}")
+            Log.i(TAG, "  입력: '$testCase'")
+            Log.i(TAG, "  출력: '$sanitized'")
+        }
+        
+        Log.i(TAG, "이모지 제거 테스트 완료")
+    }
+    
+    /**
+     * 3. 프린터 출력 테스트
+     */
+    private fun testPrinterOutput() {
+        Log.i(TAG, "=== 프린터 출력 테스트 ===")
+        
+        try {
+            // 1. EUC-KR 인코딩 테스트
+            Log.i(TAG, "1. EUC-KR 인코딩 테스트")
+            val testContent = """
+                인코딩 테스트 (EUC-KR)
+                
+                한글 출력 테스트
+                가나다라마바사
+                아자차카타파하
+                
+                결제 정보:
+                - 상품: 아메리카노
+                - 금액: 4,500원
+                - 상태: 완료
+                
+                감사합니다!
+            """.trimIndent()
+            
+            val printData = printerHelper.createCleanTextData(testContent, "EUC-KR")
+            Log.i(TAG, "프린터 테스트 데이터 생성 완료: ${printData.size} bytes")
+            
+            // 2. 영수증 형태 테스트
+            Log.i(TAG, "2. 영수증 형태 테스트")
+            val receiptItems = listOf(
+                "아메리카노" to "4,500원",
+                "카페라떼" to "5,500원", 
+                "크로와상" to "3,000원"
+            )
+            
+            val receiptData = printerHelper.createReceiptData(
+                title = "*** 테스트 영수증 ***", // 이모지 제거됨
+                items = receiptItems,
+                totalAmount = "13,000원"
+            )
+            
+            Log.i(TAG, "영수증 테스트 데이터 생성 완료: ${receiptData.size} bytes")
+            
+            // 3. 자동 인쇄 매니저 테스트
+            Log.i(TAG, "3. 자동 인쇄 매니저 테스트")
+            testAutoPrintManager()
+            
+            Log.i(TAG, "✅ 프린터 출력 테스트 완료")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 프린터 출력 테스트 실패: ${e.message}")
+        }
+    }
+    
+    /**
+     * 자동 인쇄 매니저 테스트
+     */
+    private fun testAutoPrintManager() {
+        Log.i(TAG, "=== 자동 인쇄 매니저 테스트 ===")
+        
+        try {
+            // 테스트용 영수증 데이터 생성
+            val testReceiptData = ReceiptData(
+                printId = "test-001",
+                transactionHash = "0x1234567890abcdef1234567890abcdef12345678",
+                amount = "10000",
+                token = "USDT",
+                fromAddress = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+                toAddress = "0x1234567890123456789012345678901234567890",
+                timestamp = "2024-08-29T10:30:00.000Z"
+            )
+            
+            Log.i(TAG, "테스트 영수증 데이터 생성 완료")
+            Log.i(TAG, "  - ID: ${testReceiptData.printId}")
+            Log.i(TAG, "  - 금액: ${testReceiptData.amount} ${testReceiptData.token}")
+            Log.i(TAG, "  - 타임스탬프: ${testReceiptData.timestamp}")
+            
+            // 실제 인쇄는 하지 않고 데이터 생성만 테스트
+            // val printResult = autoPrintManager.printReceipt(testReceiptData)
+            // Log.i(TAG, "자동 영수증 인쇄 테스트: ${if (printResult) "✅ 성공" else "❌ 실패"}")
+            
+            Log.i(TAG, "자동 인쇄 매니저 데이터 생성 테스트 완료")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "자동 인쇄 매니저 테스트 오류: ${e.message}")
+        }
     }
 }

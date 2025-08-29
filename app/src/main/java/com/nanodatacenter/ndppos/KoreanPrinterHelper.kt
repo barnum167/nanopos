@@ -45,16 +45,16 @@ class KoreanPrinterHelper {
 감사합니다!"""
 
         try {
-            // UTF-8로 간단하게 출력
-            val bytes = simpleKoreanText.toByteArray(Charsets.UTF_8)
+            // ✅ 수정: EUC-KR로 통일
+            val bytes = simpleKoreanText.toByteArray(Charset.forName("EUC-KR"))
             
             val commands = mutableListOf<Byte>()
             
             // 초기화
             commands.addAll(byteArrayOf(0x1B, 0x40).toList())
             
-            // UTF-8 코드페이지 설정
-            commands.addAll(byteArrayOf(0x1B, 0x59, 0x48, 0x43, 0x01).toList())
+            // ✅ 수정: 한국어 코드페이지 설정 (CP949/EUC-KR)
+            commands.addAll(byteArrayOf(0x1B, 0x74, 0x12).toList())
             
             // 텍스트 추가
             commands.addAll(bytes.toList())

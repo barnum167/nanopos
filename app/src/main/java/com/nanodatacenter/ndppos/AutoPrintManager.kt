@@ -2,6 +2,7 @@ package com.nanodatacenter.ndppos
 
 import android.util.Log
 import com.elixirpay.elixirpaycat.SerialPrinter
+import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -104,8 +105,8 @@ class AutoPrintManager {
         // 굵게, 큰 글씨
         commands.addAll(getBoldLargeFont())
         
-        // 제목
-        commands.addAll(convertStringToBytes("🧾 결제 영수증 🧾"))
+        // 제목 - ✅ 이모지 제거
+        commands.addAll(convertStringToBytes("*** 결제 영수증 ***"))
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
         
@@ -125,9 +126,9 @@ class AutoPrintManager {
     private fun createTransactionInfo(receiptData: ReceiptData): List<Byte> {
         val commands = mutableListOf<Byte>()
         
-        // 거래 정보 헤더
+        // 거래 정보 헤더 - ✅ 이모지 제거
         commands.addAll(getBoldFont())
-        commands.addAll(convertStringToBytes("📋 거래 정보"))
+        commands.addAll(convertStringToBytes("[거래 정보]"))
         commands.addAll(getNormalFont())
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
@@ -155,9 +156,9 @@ class AutoPrintManager {
     private fun createAddressInfo(receiptData: ReceiptData): List<Byte> {
         val commands = mutableListOf<Byte>()
         
-        // 주소 정보 헤더
+        // 주소 정보 헤더 - ✅ 이모지 제거
         commands.addAll(getBoldFont())
-        commands.addAll(convertStringToBytes("📍 주소 정보"))
+        commands.addAll(convertStringToBytes("[주소 정보]"))
         commands.addAll(getNormalFont())
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
@@ -181,9 +182,9 @@ class AutoPrintManager {
     private fun createTimestampInfo(receiptData: ReceiptData): List<Byte> {
         val commands = mutableListOf<Byte>()
         
-        // 시간 정보 헤더
+        // 시간 정보 헤더 - ✅ 이모지 제거
         commands.addAll(getBoldFont())
-        commands.addAll(convertStringToBytes("⏰ 처리 시간"))
+        commands.addAll(convertStringToBytes("[처리 시간]"))
         commands.addAll(getNormalFont())
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
@@ -211,7 +212,8 @@ class AutoPrintManager {
         
         commands.addAll(getLineFeed())
         commands.addAll(getAlignCenter())
-        commands.addAll(convertStringToBytes("✅ 결제가 완료되었습니다"))
+        // ✅ 이모지 제거
+        commands.addAll(convertStringToBytes("*** 결제가 완료되었습니다 ***"))
         commands.addAll(getLineFeed())
         commands.addAll(convertStringToBytes("감사합니다!"))
         commands.addAll(getLineFeed())
@@ -324,11 +326,11 @@ class AutoPrintManager {
     
     private fun getInitCommands(): List<Byte> {
         return listOf(0x1B.toByte(), 0x40.toByte()) + // ESC @ (초기화)
-               listOf(0x1B.toByte(), 0x59.toByte(), 0x48.toByte(), 0x43.toByte(), 0x01.toByte()) // UTF-8 설정
+               listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()) // ESC t 18 (한국어 코드페이지 CP949/EUC-KR)
     }
     
     private fun convertStringToBytes(text: String): List<Byte> {
-        return text.toByteArray(Charsets.UTF_8).toList()
+        return text.toByteArray(Charset.forName("EUC-KR")).toList()
     }
     
     private fun getLineFeed(): List<Byte> = listOf(0x0A.toByte())
