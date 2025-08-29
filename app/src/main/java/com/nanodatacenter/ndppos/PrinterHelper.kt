@@ -3,6 +3,7 @@ package com.nanodatacenter.ndppos
 import android.util.Log
 import com.elixirpay.elixirpaycat.helper.EpsonPrinterHelper
 import com.elixirpay.elixirpaycat.helper.command.Align
+import java.nio.charset.Charset
 
 /**
  * 제조사에서 제공한 EpsonPrinterHelper를 코틀린으로 감싸는 헬퍼 클래스
@@ -80,7 +81,89 @@ class PrinterHelper {
     }
     
     /**
-     * QR 코드 내용 프린트용 데이터 생성
+     * 인코딩을 지정하여 프린트 데이터 생성
+     */
+    fun createEncodedPrintData(content: String, encoding: String = "UTF-8"): ByteArray {
+        Log.d(TAG, "인코딩 프린트 데이터 생성: '$content' (인코딩: $encoding)")
+        
+        val commands = mutableListOf<Byte>()
+        
+        // 초기화
+        commands.addAll(getInitCommands())
+        
+        // 인코딩에 따른 코드페이지 설정
+        when (encoding) {
+            "EUC-KR", "CP949" -> {
+                // 한국어 코드페이지 설정 (CP949)
+                commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()))
+            }
+            "UTF-8" -> {
+                // UTF-8 코드페이지
+                commands.addAll(listOf(0x1B.toByte(), 0x59.toByte(), 0x48.toByte(), 0x43.toByte(), 0x01.toByte()))
+            }
+        }
+        
+        // 헤더
+        commands.addAll(createHeader("📄 인쇄 내용 📄"))
+        
+        // 내용
+        commands.addAll(createContentSection(content, encoding))
+        
+        // 푸터
+        commands.addAll(createFooter("✅ 인쇄 완료 ✅"))
+        
+        // 용지 자르기
+        commands.addAll(getPaperCutCommand())
+        
+        val result = commands.toByteArray()
+        Log.i(TAG, "인코딩 데이터 생성 완료: ${result.size} bytes")
+        
+        return result
+    }
+    
+    /**
+     * 내용 섹션 생성 (인코딩 지원)
+     */
+    private fun createContentSection(content: String, encoding: String): List<Byte> {
+        Log.d(TAG, "내용 섹션 생성: '$content' (인코딩: $encoding)")
+        val commands = mutableListOf<Byte>()
+        
+        // 구분선
+        commands.addAll(createSeparatorLine())
+        
+        // 인쇄 시간
+        val currentTime = getCurrentFormattedTime()
+        commands.addAll(createItemLine("인쇄 시간", currentTime))
+        commands.addAll(getLineFeed())
+        
+        // 인코딩 정보
+        commands.addAll(createItemLine("인코딩", encoding))
+        commands.addAll(getLineFeed())
+        
+        // 내용
+        commands.addAll(getAlignLeft())
+        val wrappedContent = wrapText(content, 40)
+        for (line in wrappedContent) {
+            val lineBytes = when (encoding) {
+                "EUC-KR" -> line.toByteArray(Charset.forName("EUC-KR"))
+                "CP949" -> line.toByteArray(Charset.forName("CP949"))
+                else -> line.toByteArray(Charsets.UTF_8)
+            }
+            commands.addAll(lineBytes.toList())
+            commands.addAll(getLineFeed())
+        }
+        commands.addAll(getLineFeed())
+        
+        // 내용 길이 정보
+        commands.addAll(createItemLine("내용 길이", "${content.length} 글자"))
+        
+        commands.addAll(createSeparatorLine())
+        
+        return commands
+    }
+    
+    /**
+     * QR 코드 내용 프린트용 데이터 생성 (기존 메서드 유지)
      */
     fun createQrContentPrintData(qrContent: String): ByteArray {
         Log.d(TAG, "QR 내용 데이터 생성 시작: '$qrContent'")
@@ -128,7 +211,7 @@ class PrinterHelper {
     }
 
     /**
-     * 간단한 텍스트 프린트용 데이터 생성
+     * 간단한 텍스트 프린트용 데이터 생성 (순수 텍스트만)
      */
     fun createSimpleTextData(text: String): ByteArray {
         Log.d(TAG, "간단한 텍스트 데이터 생성: '$text'")
@@ -145,6 +228,72 @@ class PrinterHelper {
         Log.i(TAG, "간단한 텍스트 데이터 생성 완료 - ${result.size} bytes")
         
         return result
+    }
+    
+    /**
+     * 순수 텍스트만 출력 (헤더, 푸터, 부가정보 없음)
+     */
+    fun createCleanTextData(content: String, encoding: String = "UTF-8"): ByteArray {
+        Log.d(TAG, "순수 텍스트 데이터 생성: '$content' (인코딩: $encoding)")
+        
+        val commands = mutableListOf<Byte>()
+        
+        // 초기화
+        commands.addAll(getInitCommands())
+        
+        // 인코딩에 따른 코드페이지 설정
+        when (encoding) {
+            "EUC-KR", "CP949" -> {
+                // 한국어 코드페이지 설정 (CP949)
+                commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()))
+            }
+            "UTF-8" -> {
+                // UTF-8 코드페이지
+                commands.addAll(listOf(0x1B.toByte(), 0x59.toByte(), 0x48.toByte(), 0x43.toByte(), 0x01.toByte()))
+            }
+        }
+        
+        // 왼쪽 정렬
+        commands.addAll(getAlignLeft())
+        
+        // 순수 텍스트만 추가 (인코딩 적용)
+        val textBytes = when (encoding) {
+            "EUC-KR" -> content.toByteArray(Charset.forName("EUC-KR"))
+            "CP949" -> content.toByteArray(Charset.forName("CP949"))
+            else -> content.toByteArray(Charsets.UTF_8)
+        }
+        commands.addAll(textBytes.toList())
+        
+        // 줄바꿈 추가
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        
+        // 용지 자르기
+        commands.addAll(getPaperCutCommand())
+        
+        val result = commands.toByteArray()
+        Log.i(TAG, "순수 텍스트 데이터 생성 완료: ${result.size} bytes")
+        
+        return result
+    }
+    
+    /**
+     * 순수 테스트 데이터 생성 (부가 정보 없음)
+     */
+    fun createCleanTestData(): ByteArray {
+        Log.d(TAG, "순수 테스트 데이터 생성")
+        
+        val testContent = """프린터 테스트
+
+상품명              수량    가격
+아메리카노            1   4,500원
+카페라떼              1   5,500원
+
+합계                     10,000원
+
+감사합니다."""
+
+        return createCleanTextData(testContent, "UTF-8")
     }
     
     /**

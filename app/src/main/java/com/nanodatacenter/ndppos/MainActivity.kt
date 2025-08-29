@@ -1,107 +1,71 @@
 package com.nanodatacenter.ndppos
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.elixirpay.elixirpaycat.SerialPrinter
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanIntentResult
-import com.journeyapps.barcodescanner.ScanOptions
 
 class MainActivity : AppCompatActivity() {
     
     companion object {
-        private const val TAG = "NDP_QR_GENERATOR"
-        private const val CAMERA_PERMISSION_REQUEST = 1001
+        private const val TAG = "NDP_PRINTER"
     }
     
     private lateinit var printer: SerialPrinter
-    private lateinit var qrGenerator: QRCodeGenerator
+    private lateinit var printerHelper: PrinterHelper
+    private lateinit var koreanHelper: KoreanPrinterHelper
     
-    // QR 생성 관련 UI
-    private lateinit var etPaymentAmount: EditText
-    private lateinit var etMerchantName: EditText
-    private lateinit var etPaymentDescription: EditText
-    private lateinit var btnGenerateQr: Button
-    private lateinit var tvQrTitle: TextView
-    private lateinit var layoutQrDisplay: LinearLayout
-    private lateinit var ivGeneratedQr: ImageView
-    private lateinit var tvQrInfo: TextView
-    private lateinit var btnPrintGeneratedQr: Button
-    
-    // QR 스캔 관련 UI
-    private lateinit var btnScanQR: Button
-    private lateinit var btnManualInput: Button
+    // UI 요소
+    private lateinit var etPrintContent: EditText
     private lateinit var btnPrint: Button
-    private lateinit var etQrContent: EditText
+    private lateinit var btnTestPrint: Button
+    private lateinit var btnKoreanTest: Button
     private lateinit var tvStatus: TextView
-    private lateinit var tvLastScan: TextView
+    private lateinit var rgEncoding: RadioGroup
+    private lateinit var rbUtf8: RadioButton
+    private lateinit var rbEucKr: RadioButton
+    private lateinit var rbCp949: RadioButton
+    private lateinit var switchSimpleMode: Switch
     
     private val printerPort = "/dev/ttyS4"
-    private var qrContent = ""
-    private var generatedQrBitmap: Bitmap? = null
-    private var lastGeneratedQrString = ""
-    
-    // QR 스캔 결과를 받는 launcher
-    private val qrScanLauncher = registerForActivityResult(ScanContract()) { result: ScanIntentResult ->
-        handleQrScanResult(result)
-    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         
         Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        Log.i(TAG, "NDP QR 생성기 앱 시작")
+        Log.i(TAG, "NDP 프린터 앱 시작")
         Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         
         initializeComponents()
         initializeViews()
         initializePrinter()
         setupClickListeners()
-        checkCameraPermission()
     }
     
     private fun initializeComponents() {
-        qrGenerator = QRCodeGenerator()
-        Log.d(TAG, "QR 생성기 초기화 완료")
+        printerHelper = PrinterHelper()
+        koreanHelper = KoreanPrinterHelper()
+        Log.d(TAG, "프린터 헬퍼 초기화 완료")
     }
     
     private fun initializeViews() {
-        // QR 생성 관련 UI
-        etPaymentAmount = findViewById(R.id.et_payment_amount)
-        etMerchantName = findViewById(R.id.et_merchant_name)
-        etPaymentDescription = findViewById(R.id.et_payment_description)
-        btnGenerateQr = findViewById(R.id.btn_generate_qr)
-        tvQrTitle = findViewById(R.id.tv_qr_title)
-        layoutQrDisplay = findViewById(R.id.layout_qr_display)
-        ivGeneratedQr = findViewById(R.id.iv_generated_qr)
-        tvQrInfo = findViewById(R.id.tv_qr_info)
-        btnPrintGeneratedQr = findViewById(R.id.btn_print_generated_qr)
-        
-        // QR 스캔 관련 UI
-        btnScanQR = findViewById(R.id.btn_scan_qr)
-        btnManualInput = findViewById(R.id.btn_manual_input)
+        etPrintContent = findViewById(R.id.et_print_content)
         btnPrint = findViewById(R.id.btn_print)
-        etQrContent = findViewById(R.id.et_qr_content)
+        btnTestPrint = findViewById(R.id.btn_test_print)
+        btnKoreanTest = findViewById(R.id.btn_korean_test)
         tvStatus = findViewById(R.id.tv_status)
-        tvLastScan = findViewById(R.id.tv_last_scan)
+        rgEncoding = findViewById(R.id.rg_encoding)
+        rbUtf8 = findViewById(R.id.rb_utf8)
+        rbEucKr = findViewById(R.id.rb_euc_kr)
+        rbCp949 = findViewById(R.id.rb_cp949)
+        switchSimpleMode = findViewById(R.id.switch_simple_mode)
         
         // 초기 상태 설정
-        btnPrint.isEnabled = false
         tvStatus.text = "프린터 준비 중..."
-        tvLastScan.text = "QR 코드를 생성, 스캔하거나 직접 입력하세요"
-        
-        // 기본값 설정
-        etMerchantName.setText("나노데이터센터")
-        etPaymentDescription.setText("상품 구매")
+        rbUtf8.isChecked = true
+        switchSimpleMode.isChecked = true // 기본적으로 간단 모드 활성화
         
         Log.d(TAG, "UI 요소 초기화 완료")
     }
@@ -122,297 +86,68 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupClickListeners() {
-        // QR 생성 버튼
-        btnGenerateQr.setOnClickListener {
-            generatePaymentQR()
-        }
-        
-        // 생성된 QR 인쇄 버튼
-        btnPrintGeneratedQr.setOnClickListener {
-            printGeneratedQR()
-        }
-        
-        // QR 스캔 버튼
-        btnScanQR.setOnClickListener {
-            if (hasCameraPermission()) {
-                startQrScan()
-            } else {
-                requestCameraPermission()
-            }
-        }
-        
-        // 수동 입력 버튼
-        btnManualInput.setOnClickListener {
-            val content = etQrContent.text.toString().trim()
-            if (content.isNotEmpty()) {
-                handleManualInput(content)
-            } else {
-                Toast.makeText(this, "내용을 입력하세요", Toast.LENGTH_SHORT).show()
-            }
-        }
-        
         // 일반 프린트 버튼
         btnPrint.setOnClickListener {
-            if (qrContent.isNotEmpty()) {
-                performPrint(qrContent)
-            } else {
-                Toast.makeText(this, "인쇄할 내용이 없습니다", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-    
-    /**
-     * 결제용 QR 코드 생성
-     */
-    private fun generatePaymentQR() {
-        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        Log.i(TAG, "결제용 QR 코드 생성 시작")
-        
-        val amount = etPaymentAmount.text.toString().trim()
-        val merchantName = etMerchantName.text.toString().trim()
-        val description = etPaymentDescription.text.toString().trim()
-        
-        // 입력 검증
-        if (amount.isEmpty()) {
-            Toast.makeText(this, "결제 금액을 입력하세요", Toast.LENGTH_SHORT).show()
-            etPaymentAmount.requestFocus()
-            return
-        }
-        
-        if (merchantName.isEmpty()) {
-            Toast.makeText(this, "가맹점명을 입력하세요", Toast.LENGTH_SHORT).show()
-            etMerchantName.requestFocus()
-            return
-        }
-        
-        // 금액 유효성 검사
-        val amountValue = try {
-            amount.toLong()
-        } catch (e: NumberFormatException) {
-            Toast.makeText(this, "올바른 금액을 입력하세요", Toast.LENGTH_SHORT).show()
-            etPaymentAmount.requestFocus()
-            return
-        }
-        
-        if (amountValue <= 0) {
-            Toast.makeText(this, "결제 금액은 0보다 커야 합니다", Toast.LENGTH_SHORT).show()
-            etPaymentAmount.requestFocus()
-            return
-        }
-        
-        Log.i(TAG, "결제 정보:")
-        Log.i(TAG, "  ✓ 금액: $amount 원")
-        Log.i(TAG, "  ✓ 가맹점: $merchantName")
-        Log.i(TAG, "  ✓ 설명: $description")
-        
-        // 주문 ID 생성
-        val orderId = qrGenerator.generateOrderId("NDP")
-        Log.i(TAG, "  ✓ 주문ID: $orderId")
-        
-        // QR 코드 생성
-        Thread {
-            try {
-                val paymentInfo = QRCodeGenerator.PaymentInfo(
-                    amount = amount,
-                    merchantId = "NDP_001",
-                    merchantName = merchantName,
-                    orderId = orderId,
-                    description = description
-                )
-                
-                val qrString = qrGenerator.createPaymentQRString(paymentInfo)
-                val qrBitmap = qrGenerator.generatePaymentQRBitmap(paymentInfo, 400, 400)
-                
-                Log.i(TAG, "QR 코드 생성 완료")
-                Log.i(TAG, "  ✓ 데이터 길이: ${qrString.length}")
-                Log.i(TAG, "  ✓ 비트맵 크기: 400x400")
-                
-                runOnUiThread {
-                    if (qrBitmap != null) {
-                        // QR 코드 표시
-                        ivGeneratedQr.setImageBitmap(qrBitmap)
-                        tvQrInfo.text = "결제 금액: ${amount}원\n가맹점: ${merchantName}\n주문ID: ${orderId}"
-                        
-                        // UI 표시
-                        tvQrTitle.visibility = View.VISIBLE
-                        layoutQrDisplay.visibility = View.VISIBLE
-                        
-                        // 생성 정보 저장
-                        generatedQrBitmap = qrBitmap
-                        lastGeneratedQrString = qrString
-                        
-                        Toast.makeText(this, "✓ QR 코드 생성 완료!", Toast.LENGTH_SHORT).show()
-                        Log.i(TAG, "QR 코드 UI 업데이트 완료")
-                        
-                    } else {
-                        Toast.makeText(this, "✗ QR 코드 생성 실패", Toast.LENGTH_LONG).show()
-                        Log.e(TAG, "QR 코드 비트맵 생성 실패")
-                    }
-                }
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "QR 코드 생성 중 오류: ${e.message}", e)
-                runOnUiThread {
-                    Toast.makeText(this, "QR 코드 생성 실패: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }.start()
-    }
-    
-    /**
-     * 생성된 QR 코드 인쇄
-     */
-    private fun printGeneratedQR() {
-        if (lastGeneratedQrString.isEmpty()) {
-            Toast.makeText(this, "인쇄할 QR 코드가 없습니다", Toast.LENGTH_SHORT).show()
-            return
-        }
-        
-        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        Log.i(TAG, "생성된 QR 코드 인쇄 시작")
-        Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        
-        performPrint(lastGeneratedQrString, "생성된 QR 결제 코드")
-    }
-    
-    /**
-     * 카메라 권한 확인
-     */
-    private fun checkCameraPermission() {
-        if (!hasCameraPermission()) {
-            requestCameraPermission()
-        } else {
-            Log.d(TAG, "카메라 권한 이미 승인됨")
-        }
-    }
-    
-    private fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this, Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-    
-    private fun requestCameraPermission() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.CAMERA),
-            CAMERA_PERMISSION_REQUEST
-        )
-    }
-    
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            CAMERA_PERMISSION_REQUEST -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d(TAG, "카메라 권한 승인됨")
-                    Toast.makeText(this, "카메라 권한이 승인되었습니다", Toast.LENGTH_SHORT).show()
-                } else {
-                    Log.w(TAG, "카메라 권한 거부됨")
-                    Toast.makeText(this, "QR 스캔을 위해 카메라 권한이 필요합니다", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-    
-    /**
-     * QR 스캔 시작
-     */
-    private fun startQrScan() {
-        Log.d(TAG, "QR 스캔 시작")
-        
-        val options = ScanOptions().apply {
-            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-            setPrompt("QR 코드를 스캔하세요")
-            setCameraId(0) // 후면 카메라 사용
-            setBeepEnabled(true)
-            setBarcodeImageEnabled(false)
-            setOrientationLocked(true)
-        }
-        
-        qrScanLauncher.launch(options)
-    }
-    
-    /**
-     * QR 스캔 결과 처리
-     */
-    private fun handleQrScanResult(result: ScanIntentResult) {
-        if (result.contents != null) {
-            val scannedContent = result.contents
-            Log.i(TAG, "QR 스캔 성공: $scannedContent")
-            
-            qrContent = scannedContent
-            etQrContent.setText(qrContent)
-            tvLastScan.text = "스캔 결과: $qrContent"
-            btnPrint.isEnabled = true
-            
-            Toast.makeText(this, "QR 스캔 완료!", Toast.LENGTH_SHORT).show()
-            
-            // 자동으로 인쇄 여부 확인
-            showPrintConfirmDialog(qrContent)
-            
-        } else {
-            Log.w(TAG, "QR 스캔 취소됨")
-            Toast.makeText(this, "QR 스캔이 취소되었습니다", Toast.LENGTH_SHORT).show()
-        }
-    }
-    
-    /**
-     * 수동 입력 처리
-     */
-    private fun handleManualInput(content: String) {
-        Log.i(TAG, "수동 입력: $content")
-        
-        qrContent = content
-        tvLastScan.text = "수동 입력: $content"
-        btnPrint.isEnabled = true
-        
-        Toast.makeText(this, "내용이 입력되었습니다", Toast.LENGTH_SHORT).show()
-    }
-    
-    /**
-     * 인쇄 확인 대화상자
-     */
-    private fun showPrintConfirmDialog(content: String) {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("인쇄 확인")
-            .setMessage("다음 내용을 인쇄하시겠습니까?\n\n$content")
-            .setPositiveButton("인쇄") { _, _ ->
+            val content = etPrintContent.text.toString().trim()
+            if (content.isNotEmpty()) {
                 performPrint(content)
+            } else {
+                Toast.makeText(this, "인쇄할 내용을 입력하세요", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("취소", null)
-            .show()
+        }
+        
+        // 테스트 프린트 버튼
+        btnTestPrint.setOnClickListener {
+            performTestPrint()
+        }
+        
+        // 한국어 테스트 프린트 버튼
+        btnKoreanTest.setOnClickListener {
+            performKoreanTestPrint()
+        }
     }
     
     /**
      * 인쇄 실행
      */
-    private fun performPrint(content: String, printType: String = "스캔/입력 내용") {
+    private fun performPrint(content: String) {
         Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        Log.i(TAG, "$printType 인쇄 시작")
+        Log.i(TAG, "프린트 시작")
         Log.i(TAG, "내용: $content")
+        Log.i(TAG, "간단 모드: ${switchSimpleMode.isChecked}")
         Log.i(TAG, "포트: $printerPort")
         Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         
         // UI 업데이트
         tvStatus.text = "인쇄 중...\n내용: ${content.take(30)}${if(content.length > 30) "..." else ""}"
+        btnPrint.isEnabled = false
         
-        // 해당 버튼 비활성화
-        if (printType.contains("생성된")) {
-            btnPrintGeneratedQr.isEnabled = false
-        } else {
-            btnPrint.isEnabled = false
+        // 선택된 인코딩 확인
+        val selectedEncoding = when (rgEncoding.checkedRadioButtonId) {
+            R.id.rb_utf8 -> "UTF-8"
+            R.id.rb_euc_kr -> "EUC-KR"
+            R.id.rb_cp949 -> "CP949"
+            else -> "UTF-8"
         }
+        
+        Log.i(TAG, "선택된 인코딩: $selectedEncoding")
         
         // 백그라운드에서 인쇄 실행
         Thread {
             try {
-                val helper = PrinterHelper()
-                val printData = helper.createQrContentPrintData(content)
+                // 간단 모드 확인
+                val printData = if (switchSimpleMode.isChecked) {
+                    // 순수 텍스트만 출력 (헤더, 푸터, 부가정보 없음)
+                    printerHelper.createCleanTextData(content, selectedEncoding)
+                } else {
+                    // 기존 방식 (헤더, 푸터 포함)
+                    when (selectedEncoding) {
+                        "UTF-8" -> printerHelper.createEncodedPrintData(content, "UTF-8")
+                        "EUC-KR" -> printerHelper.createEncodedPrintData(content, "EUC-KR")
+                        "CP949" -> printerHelper.createEncodedPrintData(content, "CP949")
+                        else -> printerHelper.createEncodedPrintData(content, "UTF-8")
+                    }
+                }
                 
                 Log.d(TAG, "인쇄 데이터 생성 완료: ${printData.size} bytes")
                 
@@ -426,21 +161,16 @@ class MainActivity : AppCompatActivity() {
                 Log.i(TAG, "인쇄 완료!")
                 Log.i(TAG, "  ✓ 전송 시간: ${endTime - startTime}ms")
                 Log.i(TAG, "  ✓ 전송 바이트: ${printData.size}")
+                Log.i(TAG, "  ✓ 모드: ${if(switchSimpleMode.isChecked) "간단 출력" else "상세 출력"}")
                 
                 // 프린터 처리 대기
                 Thread.sleep(2000)
                 
                 runOnUiThread {
-                    tvStatus.text = "인쇄 완료!\n시간: ${getCurrentTime()}\n전송: ${printData.size} bytes"
-                    
-                    // 버튼 재활성화
-                    if (printType.contains("생성된")) {
-                        btnPrintGeneratedQr.isEnabled = true
-                    } else {
-                        btnPrint.isEnabled = true
-                    }
-                    
-                    Toast.makeText(this, "✓ $printType 인쇄 완료!", Toast.LENGTH_SHORT).show()
+                    val modeText = if(switchSimpleMode.isChecked) "간단 모드" else "상세 모드"
+                    tvStatus.text = "인쇄 완료!\n시간: ${getCurrentTime()}\n전송: ${printData.size} bytes\n인코딩: $selectedEncoding\n모드: $modeText"
+                    btnPrint.isEnabled = true
+                    Toast.makeText(this, "✓ 인쇄 완료! ($modeText)", Toast.LENGTH_SHORT).show()
                 }
                 
             } catch (e: Exception) {
@@ -448,15 +178,91 @@ class MainActivity : AppCompatActivity() {
                 
                 runOnUiThread {
                     tvStatus.text = "인쇄 실패\n오류: ${e.message}"
-                    
-                    // 버튼 재활성화
-                    if (printType.contains("생성된")) {
-                        btnPrintGeneratedQr.isEnabled = true
-                    } else {
-                        btnPrint.isEnabled = true
-                    }
-                    
+                    btnPrint.isEnabled = true
                     Toast.makeText(this, "✗ 인쇄 실패: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+    
+    /**
+     * 테스트 인쇄 실행
+     */
+    private fun performTestPrint() {
+        Log.i(TAG, "테스트 인쇄 시작 - 간단 모드: ${switchSimpleMode.isChecked}")
+        
+        tvStatus.text = "테스트 인쇄 중..."
+        btnTestPrint.isEnabled = false
+        
+        Thread {
+            try {
+                val printData = if (switchSimpleMode.isChecked) {
+                    // 간단한 테스트 데이터 (부가 정보 없음)
+                    printerHelper.createCleanTestData()
+                } else {
+                    // 기존 상세 테스트 데이터
+                    printerHelper.createTestPrintData()
+                }
+                
+                printer.setBuffer(printData)
+                printer.print()
+                
+                Thread.sleep(2000)
+                
+                runOnUiThread {
+                    val modeText = if(switchSimpleMode.isChecked) "간단 모드" else "상세 모드"
+                    tvStatus.text = "테스트 인쇄 완료!\n시간: ${getCurrentTime()}\n모드: $modeText"
+                    btnTestPrint.isEnabled = true
+                    Toast.makeText(this, "✓ 테스트 인쇄 완료! ($modeText)", Toast.LENGTH_SHORT).show()
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "테스트 인쇄 실패: ${e.message}", e)
+                
+                runOnUiThread {
+                    tvStatus.text = "테스트 인쇄 실패\n오류: ${e.message}"
+                    btnTestPrint.isEnabled = true
+                    Toast.makeText(this, "✗ 테스트 인쇄 실패: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+    
+    /**
+     * 한국어 테스트 인쇄 실행
+     */
+    private fun performKoreanTestPrint() {
+        Log.i(TAG, "한국어 테스트 인쇄 시작 - 간단 모드: ${switchSimpleMode.isChecked}")
+        
+        tvStatus.text = "한국어 테스트 인쇄 중..."
+        btnKoreanTest.isEnabled = false
+        
+        Thread {
+            try {
+                if (switchSimpleMode.isChecked) {
+                    // 간단한 한국어 테스트
+                    koreanHelper.printSimpleKoreanTest()
+                    Thread.sleep(2000)
+                } else {
+                    // 기존 상세 한국어 테스트 (여러 인코딩)
+                    koreanHelper.printKoreanTestReceipt()
+                    Thread.sleep(3000)
+                }
+                
+                runOnUiThread {
+                    val modeText = if(switchSimpleMode.isChecked) "간단 모드" else "상세 모드"
+                    tvStatus.text = "한국어 테스트 인쇄 완료!\n모드: $modeText"
+                    btnKoreanTest.isEnabled = true
+                    Toast.makeText(this, "✓ 한국어 테스트 인쇄 완료! ($modeText)", Toast.LENGTH_SHORT).show()
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "한국어 테스트 인쇄 실패: ${e.message}", e)
+                
+                runOnUiThread {
+                    tvStatus.text = "한국어 테스트 인쇄 실패\n오류: ${e.message}"
+                    btnKoreanTest.isEnabled = true
+                    Toast.makeText(this, "✗ 한국어 테스트 인쇄 실패: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }.start()
@@ -474,6 +280,6 @@ class MainActivity : AppCompatActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        Log.i(TAG, "NDP QR 생성기 앱 종료")
+        Log.i(TAG, "NDP 프린터 앱 종료")
     }
 }
