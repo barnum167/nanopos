@@ -11,5 +11,6 @@ data class ReceiptData(
     val token: String,             // 토큰 종류
     val fromAddress: String,       // 보내는 주소
     val toAddress: String,         // 받는 주소
-    val timestamp: String          // 타임스탬프
+    val timestamp: String,         // 타임스탬프
+    val productName: String? = "아메리카노"  // 상품명 (기본값: 아메리카노)
 )

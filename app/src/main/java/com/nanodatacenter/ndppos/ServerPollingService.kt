@@ -179,8 +179,9 @@ class ServerPollingService {
             val fromAddress = item.getString("fromAddress")
             val toAddress = item.getString("toAddress")
             val timestamp = item.getString("timestamp")
+            val productName = item.optString("productName", "아메리카노") // 상품명 추가 (기본값: 아메리카노)
             
-            Log.i(TAG, "인쇄 작업 처리 시작 - ID: $printId, txHash: $txHash")
+            Log.i(TAG, "인쇄 작업 처리 시작 - ID: $printId, txHash: $txHash, 상품: $productName")
             
             // 인쇄 시작 상태로 업데이트
             updatePrintStatus(printId, "printing")
@@ -193,7 +194,8 @@ class ServerPollingService {
                 token = token,
                 fromAddress = fromAddress,
                 toAddress = toAddress,
-                timestamp = timestamp
+                timestamp = timestamp,
+                productName = productName
             )
             
             // 자동 인쇄 실행

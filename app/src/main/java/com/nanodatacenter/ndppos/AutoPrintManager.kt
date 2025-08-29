@@ -59,10 +59,10 @@ class AutoPrintManager {
     }
     
     /**
-     * 영수증 인쇄 데이터 생성
+     * 영수증 인쇄 데이터 생성 (간소화된 버전)
      */
     private fun createReceiptPrintData(receiptData: ReceiptData): ByteArray {
-        Log.d(TAG, "영수증 인쇄 데이터 생성 시작")
+        Log.d(TAG, "간소화된 영수증 인쇄 데이터 생성 시작")
         
         val commands = mutableListOf<Byte>()
         
@@ -70,33 +70,30 @@ class AutoPrintManager {
         commands.addAll(getInitCommands())
         
         // 헤더
-        commands.addAll(createReceiptHeader())
+        commands.addAll(createSimpleReceiptHeader())
         
-        // 거래 정보
-        commands.addAll(createTransactionInfo(receiptData))
+        // 상품 정보 (아메리카노)
+        commands.addAll(createProductInfo(receiptData))
         
-        // 주소 정보
-        commands.addAll(createAddressInfo(receiptData))
-        
-        // 타임스탬프
-        commands.addAll(createTimestampInfo(receiptData))
+        // 거래 정보 (간소화)
+        commands.addAll(createSimpleTransactionInfo(receiptData))
         
         // 푸터
-        commands.addAll(createReceiptFooter())
+        commands.addAll(createSimpleReceiptFooter())
         
         // 용지 자르기
         commands.addAll(getPaperCutCommand())
         
         val result = commands.toByteArray()
-        Log.d(TAG, "영수증 데이터 생성 완료: ${result.size} bytes")
+        Log.d(TAG, "간소화된 영수증 데이터 생성 완료: ${result.size} bytes")
         
         return result
     }
     
     /**
-     * 영수증 헤더 생성
+     * 간소화된 영수증 헤더 생성
      */
-    private fun createReceiptHeader(): List<Byte> {
+    private fun createSimpleReceiptHeader(): List<Byte> {
         val commands = mutableListOf<Byte>()
         
         // 가운데 정렬
@@ -105,7 +102,7 @@ class AutoPrintManager {
         // 굵게, 큰 글씨
         commands.addAll(getBoldLargeFont())
         
-        // 제목 - ✅ 이모지 제거
+        // 제목
         commands.addAll(convertStringToBytes("*** 결제 영수증 ***"))
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
@@ -115,6 +112,60 @@ class AutoPrintManager {
         commands.addAll(getAlignLeft())
         
         // 구분선
+        commands.addAll(createSeparatorLine())
+        
+        return commands
+    }
+    
+    /**
+     * 상품 정보 생성
+     */
+    private fun createProductInfo(receiptData: ReceiptData): List<Byte> {
+        val commands = mutableListOf<Byte>()
+        
+        // 상품 정보 헤더
+        commands.addAll(getBoldFont())
+        commands.addAll(convertStringToBytes("[상품 정보]"))
+        commands.addAll(getNormalFont())
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        
+        // 상품명 (데이터에서 가져오거나 기본값 사용)
+        val productName = receiptData.productName ?: "아메리카노"
+        commands.addAll(createInfoLine("상품명", productName))
+        commands.addAll(getLineFeed())
+        
+        commands.addAll(createSeparatorLine())
+        
+        return commands
+    }
+    
+    /**
+     * 간소화된 거래 정보 섹션 생성 (txHash, Amount, timestamp만)
+     */
+    private fun createSimpleTransactionInfo(receiptData: ReceiptData): List<Byte> {
+        val commands = mutableListOf<Byte>()
+        
+        // 거래 정보 헤더
+        commands.addAll(getBoldFont())
+        commands.addAll(convertStringToBytes("[거래 정보]"))
+        commands.addAll(getNormalFont())
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        
+        // 거래 해시
+        commands.addAll(createInfoLine("거래 해시", shortenHash(receiptData.transactionHash)))
+        commands.addAll(getLineFeed())
+        
+        // 결제 금액
+        commands.addAll(createInfoLine("결제 금액", "${receiptData.amount} ${receiptData.token}"))
+        commands.addAll(getLineFeed())
+        
+        // 거래 시간
+        val formattedTime = formatTimestamp(receiptData.timestamp)
+        commands.addAll(createInfoLine("거래 시간", formattedTime))
+        commands.addAll(getLineFeed())
+        
         commands.addAll(createSeparatorLine())
         
         return commands
@@ -205,14 +256,13 @@ class AutoPrintManager {
     }
     
     /**
-     * 영수증 푸터 생성
+     * 간소화된 영수증 푸터 생성
      */
-    private fun createReceiptFooter(): List<Byte> {
+    private fun createSimpleReceiptFooter(): List<Byte> {
         val commands = mutableListOf<Byte>()
         
         commands.addAll(getLineFeed())
         commands.addAll(getAlignCenter())
-        // ✅ 이모지 제거
         commands.addAll(convertStringToBytes("*** 결제가 완료되었습니다 ***"))
         commands.addAll(getLineFeed())
         commands.addAll(convertStringToBytes("감사합니다!"))
