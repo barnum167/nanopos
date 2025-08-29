@@ -185,6 +185,113 @@
             android:padding="16dp"
             android:layout_marginBottom="16dp" />
 
+        <!-- 자동 인쇄 시스템 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🤖 자동 인쇄 시스템"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#1976D2"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 서버 연결 상태 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_background"
+            android:padding="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_mylocation"
+                android:layout_marginEnd="12dp"
+                android:alpha="0.7" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="서버 연결 상태"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+
+                <TextView
+                    android:id="@+id/tv_server_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="확인 중..."
+                    android:textSize="13sp"
+                    android:textColor="#666666" />
+
+            </LinearLayout>
+
+            <View
+                android:id="@+id/view_server_indicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:background="@drawable/rounded_background"
+                android:backgroundTint="#FFA726" />
+
+        </LinearLayout>
+
+        <!-- 자동 인쇄 제어 버튼 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/btn_start_auto_print"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="▶️ 자동 인쇄 시작"
+                android:textSize="14sp"
+                android:textColor="#ffffff"
+                android:background="@drawable/button_green"
+                android:padding="12dp"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_stop_auto_print"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⏹️ 자동 인쇄 중지"
+                android:textSize="14sp"
+                android:textColor="#ffffff"
+                android:background="@drawable/button_purple"
+                android:padding="12dp"
+                android:layout_marginStart="6dp"
+                android:enabled="false" />
+
+        </LinearLayout>
+
+        <!-- 자동 인쇄 상태 표시 -->
+        <TextView
+            android:id="@+id/tv_auto_print_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="자동 인쇄 시스템 대기 중"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:padding="12dp"
+            android:background="@drawable/status_background"
+            android:layout_marginBottom="16dp"
+            android:gravity="center" />
+
         <!-- 상태 표시 -->
         <TextView
             android:layout_width="match_parent"

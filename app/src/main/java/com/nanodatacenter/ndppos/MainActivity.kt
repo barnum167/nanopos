@@ -2,9 +2,11 @@ package com.nanodatacenter.ndppos
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.elixirpay.elixirpaycat.SerialPrinter
+import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
     
@@ -15,6 +17,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var printer: SerialPrinter
     private lateinit var printerHelper: PrinterHelper
     private lateinit var koreanHelper: KoreanPrinterHelper
+    
+    // 자동 인쇄 시스템 (SSL 검증 우회 포함)
+    private lateinit var serverPollingService: ServerPollingServiceV2
+    private lateinit var autoPrintManager: AutoPrintManager
     
     // UI 요소
     private lateinit var etPrintContent: EditText
@@ -27,6 +33,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rbEucKr: RadioButton
     private lateinit var rbCp949: RadioButton
     private lateinit var switchSimpleMode: Switch
+    
+    // 자동 인쇄 UI 요소
+    private lateinit var tvServerStatus: TextView
+    private lateinit var viewServerIndicator: View
+    private lateinit var btnStartAutoPrint: Button
+    private lateinit var btnStopAutoPrint: Button
+    private lateinit var tvAutoPrintStatus: TextView
     
     private val printerPort = "/dev/ttyS4"
     
@@ -42,15 +55,23 @@ class MainActivity : AppCompatActivity() {
         initializeViews()
         initializePrinter()
         setupClickListeners()
+        checkServerConnection()
     }
     
     private fun initializeComponents() {
         printerHelper = PrinterHelper()
         koreanHelper = KoreanPrinterHelper()
+        
+        // 자동 인쇄 시스템 초기화 (SSL 검증 우회 포함)
+        serverPollingService = ServerPollingServiceV2()
+        autoPrintManager = AutoPrintManager()
+        
         Log.d(TAG, "프린터 헬퍼 초기화 완료")
+        Log.d(TAG, "자동 인쇄 시스템 초기화 완료")
     }
     
     private fun initializeViews() {
+        // 기본 UI 요소
         etPrintContent = findViewById(R.id.et_print_content)
         btnPrint = findViewById(R.id.btn_print)
         btnTestPrint = findViewById(R.id.btn_test_print)
@@ -62,10 +83,22 @@ class MainActivity : AppCompatActivity() {
         rbCp949 = findViewById(R.id.rb_cp949)
         switchSimpleMode = findViewById(R.id.switch_simple_mode)
         
+        // 자동 인쇄 UI 요소
+        tvServerStatus = findViewById(R.id.tv_server_status)
+        viewServerIndicator = findViewById(R.id.view_server_indicator)
+        btnStartAutoPrint = findViewById(R.id.btn_start_auto_print)
+        btnStopAutoPrint = findViewById(R.id.btn_stop_auto_print)
+        tvAutoPrintStatus = findViewById(R.id.tv_auto_print_status)
+        
         // 초기 상태 설정
         tvStatus.text = "프린터 준비 중..."
         rbUtf8.isChecked = true
         switchSimpleMode.isChecked = true // 기본적으로 간단 모드 활성화
+        
+        // 자동 인쇄 초기 상태
+        tvServerStatus.text = "서버 연결 확인 중..."
+        tvAutoPrintStatus.text = "자동 인쇄 시스템 대기 중"
+        updateServerConnectionIndicator(false)
         
         Log.d(TAG, "UI 요소 초기화 완료")
     }
@@ -104,6 +137,16 @@ class MainActivity : AppCompatActivity() {
         // 한국어 테스트 프린트 버튼
         btnKoreanTest.setOnClickListener {
             performKoreanTestPrint()
+        }
+        
+        // 자동 인쇄 시작 버튼
+        btnStartAutoPrint.setOnClickListener {
+            startAutoPrintSystem()
+        }
+        
+        // 자동 인쇄 중지 버튼
+        btnStopAutoPrint.setOnClickListener {
+            stopAutoPrintSystem()
         }
     }
     
@@ -273,13 +316,116 @@ class MainActivity : AppCompatActivity() {
         return dateFormat.format(java.util.Date())
     }
     
+    /**
+     * 서버 연결 상태 확인
+     */
+    private fun checkServerConnection() {
+        Log.d(TAG, "서버 연결 상태 확인 시작")
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val isConnected = serverPollingService.testServerConnection()
+                
+                runOnUiThread {
+                    if (isConnected) {
+                        tvServerStatus.text = "서버 연결 성공"
+                        updateServerConnectionIndicator(true)
+                        btnStartAutoPrint.isEnabled = true
+                        Log.i(TAG, "서버 연결 성공")
+                    } else {
+                        tvServerStatus.text = "서버 연결 실패"
+                        updateServerConnectionIndicator(false)
+                        btnStartAutoPrint.isEnabled = false
+                        Log.w(TAG, "서버 연결 실패")
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "서버 연결 확인 오류: ${e.message}")
+                
+                runOnUiThread {
+                    tvServerStatus.text = "연결 확인 오류: ${e.message}"
+                    updateServerConnectionIndicator(false)
+                    btnStartAutoPrint.isEnabled = false
+                }
+            }
+        }
+    }
+    
+    /**
+     * 자동 인쇄 시스템 시작
+     */
+    private fun startAutoPrintSystem() {
+        try {
+            Log.i(TAG, "자동 인쇄 시스템 시작")
+            
+            serverPollingService.startPolling(autoPrintManager)
+            
+            // UI 업데이트
+            btnStartAutoPrint.isEnabled = false
+            btnStopAutoPrint.isEnabled = true
+            tvAutoPrintStatus.text = "자동 인쇄 시스템 실행 중 (폴링 간격: 3초)"
+            
+            Toast.makeText(this, "자동 인쇄 시스템이 시작되었습니다", Toast.LENGTH_SHORT).show()
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "자동 인쇄 시스템 시작 실패: ${e.message}")
+            Toast.makeText(this, "자동 인쇄 시스템 시작 실패: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    /**
+     * 자동 인쇄 시스템 중지
+     */
+    private fun stopAutoPrintSystem() {
+        try {
+            Log.i(TAG, "자동 인쇄 시스템 중지")
+            
+            serverPollingService.stopPolling()
+            
+            // UI 업데이트
+            btnStartAutoPrint.isEnabled = true
+            btnStopAutoPrint.isEnabled = false
+            tvAutoPrintStatus.text = "자동 인쇄 시스템 중지됨"
+            
+            Toast.makeText(this, "자동 인쇄 시스템이 중지되었습니다", Toast.LENGTH_SHORT).show()
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "자동 인쇄 시스템 중지 오류: ${e.message}")
+            Toast.makeText(this, "자동 인쇄 시스템 중지 오류: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    /**
+     * 서버 연결 상태 표시기 업데이트
+     */
+    private fun updateServerConnectionIndicator(isConnected: Boolean) {
+        runOnUiThread {
+            if (isConnected) {
+                viewServerIndicator.setBackgroundColor(getColor(android.R.color.holo_green_light))
+            } else {
+                viewServerIndicator.setBackgroundColor(getColor(android.R.color.holo_orange_light))
+            }
+        }
+    }
+    
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "액티비티 재개됨")
+        
+        // 서버 연결 상태 재확인
+        checkServerConnection()
     }
     
     override fun onDestroy() {
         super.onDestroy()
+        
+        // 자동 인쇄 시스템 중지
+        if (serverPollingService.isPollingActive()) {
+            serverPollingService.stopPolling()
+            Log.i(TAG, "앱 종료 시 자동 인쇄 시스템 중지")
+        }
+        
         Log.i(TAG, "NDP 프린터 앱 종료")
     }
 }
