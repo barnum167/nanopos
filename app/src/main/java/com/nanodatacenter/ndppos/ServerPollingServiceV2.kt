@@ -21,7 +21,7 @@ class ServerPollingServiceV2 {
     companion object {
         private const val TAG = "ServerPollingService"
         private const val POLLING_INTERVAL = 3000L // 3초마다 폴링
-        private const val SERVER_BASE_URL = "https://ccd794063d7c.ngrok-free.app" // 서버 IP 주소 (환경에 맞게 수정)
+        private const val SERVER_BASE_URL = "https://a7b4aeba3e88.ngrok-free.app" // 서버 IP 주소 (환경에 맞게 수정)
         // 실제 사용 시 PC의 IP 주소로 변경: 예) "http://192.168.1.100:3000"
         
         // SSL 검증 우회를 위한 설정 (개발 환경용)

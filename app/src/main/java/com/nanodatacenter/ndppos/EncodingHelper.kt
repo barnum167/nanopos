@@ -149,11 +149,20 @@ object EncodingHelper {
     }
     
     /**
-     * 문자열에서 이모지 제거
+     * 문자열에서 이모지 제거 (Android 6.0 호환)
      */
     fun removeEmojis(text: String): String {
-        // 이모지 패턴 제거 (유니코드 범위 기반)
-        val emojiPattern = Regex("[\\u{1F600}-\\u{1F64F}]|[\\u{1F300}-\\u{1F5FF}]|[\\u{1F680}-\\u{1F6FF}]|[\\u{1F1E0}-\\u{1F1FF}]|[\\u{2600}-\\u{26FF}]|[\\u{2700}-\\u{27BF}]")
+        // Android 6.0 호환 이모지 패턴 (서로게이트 쌍 사용)
+        val emojiPattern = Regex(
+            "[\\uD83D\\uDE00-\\uD83D\\uDE4F]|" +  // 얼굴 이모지
+            "[\\uD83C\\uDF00-\\uD83C\\uDFFF]|" +  // 기호와 그림 문자
+            "[\\uD83D\\uDC00-\\uD83D\\uDCFF]|" +  // 동물과 자연
+            "[\\uD83D\\uDD00-\\uD83D\\uDDFF]|" +  // 기호
+            "[\\uD83D\\uDE80-\\uD83D\\uDEFF]|" +  // 교통수단과 지도 기호
+            "[\\uD83C\\uDDE0-\\uD83C\\uDDFF]|" +  // 국기
+            "[\\u2600-\\u26FF]|" +               // 기타 기호
+            "[\\u2700-\\u27BF]"                  // 딩뱃 문자
+        )
         val cleaned = text.replace(emojiPattern, "")
         
         if (cleaned != text) {

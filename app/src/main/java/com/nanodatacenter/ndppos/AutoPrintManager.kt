@@ -103,7 +103,7 @@ class AutoPrintManager {
         commands.addAll(getBoldLargeFont())
         
         // 제목
-        commands.addAll(convertStringToBytes("*** 결제 영수증 ***"))
+        commands.addAll(convertStringToBytes("결제 영수증"))
         commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
         
@@ -263,7 +263,7 @@ class AutoPrintManager {
         
         commands.addAll(getLineFeed())
         commands.addAll(getAlignCenter())
-        commands.addAll(convertStringToBytes("*** 결제가 완료되었습니다 ***"))
+        commands.addAll(convertStringToBytes("결제가 완료되었습니다"))
         commands.addAll(getLineFeed())
         commands.addAll(convertStringToBytes("감사합니다!"))
         commands.addAll(getLineFeed())

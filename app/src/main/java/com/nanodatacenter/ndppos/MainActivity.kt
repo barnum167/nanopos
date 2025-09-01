@@ -513,13 +513,13 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "=== 이모지 제거 테스트 ===")
         
         val emojiTestCases = listOf(
-            "🧾 결제 영수증 🧾",
-            "📋 거래 정보",
-            "📍 주소 정보", 
-            "⏰ 처리 시간",
-            "✅ 결제가 완료되었습니다",
-            "🖨️ 프린터 테스트 🖨️",
-            "감사합니다! 😊"
+            "결제 영수증",
+            "거래 정보",
+            "주소 정보",
+            "처리 시간",
+            "결제가 완료되었습니다",
+            "프린터 테스트",
+            "감사합니다!"
         )
         
         var allSuccess = true
@@ -527,7 +527,7 @@ class MainActivity : AppCompatActivity() {
             val sanitized = EncodingHelper.sanitizeForPrinter(testCase)
             val hasEmoji = testCase != sanitized
             
-            Log.i(TAG, "이모지 테스트 ${index + 1}: ${if (hasEmoji) "✅ 제거됨" else "⚠️ 원본유지"}")
+            Log.i(TAG, "이모지 테스트 ${index + 1}: ${if (hasEmoji) "제거됨" else "⚠원본유지"}")
             Log.i(TAG, "  입력: '$testCase'")
             Log.i(TAG, "  출력: '$sanitized'")
         }
