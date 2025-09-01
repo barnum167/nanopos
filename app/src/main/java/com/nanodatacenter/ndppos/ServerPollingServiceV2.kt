@@ -9,6 +9,7 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 import javax.net.ssl.*
 import java.security.cert.X509Certificate
 
@@ -130,10 +131,10 @@ class ServerPollingServiceV2 {
                 connectTimeout = 10000 // 연결 타임아웃 증가
                 readTimeout = 15000 // 읽기 타임아웃 증가
                 
-                // ngrok 요청에 필요한 헤더 추가 - ✅ EUC-KR 명시
-                setRequestProperty("Content-Type", "application/json; charset=EUC-KR")
-                setRequestProperty("Accept", "application/json; charset=EUC-KR")
-                setRequestProperty("Accept-Charset", "EUC-KR")
+                // ngrok 요청에 필요한 헤더 추가 - ✅ UTF-8 명시
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("Accept", "application/json; charset=UTF-8")
+                setRequestProperty("Accept-Charset", "UTF-8")
                 setRequestProperty("User-Agent", "Android-NDP-Printer/1.0")
                 setRequestProperty("ngrok-skip-browser-warning", "true")
                 
@@ -148,9 +149,9 @@ class ServerPollingServiceV2 {
             Log.d(TAG, "서버 응답 코드: $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                // ✅ 수정: EUC-KR 인코딩 명시
+                // ✅ 수정: UTF-8 인코딩 명시
                 val response = BufferedReader(
-                    InputStreamReader(connection.inputStream, "EUC-KR")
+                    InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
                 ).use { 
                     it.readText() 
                 }
@@ -161,10 +162,10 @@ class ServerPollingServiceV2 {
             } else {
                 Log.w(TAG, "서버 요청 실패: HTTP $responseCode")
                 
-                // 오류 응답 내용 읽기 - ✅ EUC-KR 인코딩 적용
+                // 오류 응답 내용 읽기 - ✅ UTF-8 인코딩 적용
                 val errorResponse = try {
                     BufferedReader(
-                        InputStreamReader(connection.errorStream ?: connection.inputStream, "EUC-KR")
+                        InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)
                     ).use { 
                         it.readText() 
                     }
@@ -227,7 +228,9 @@ class ServerPollingServiceV2 {
             val fromAddress = item.getString("fromAddress")
             val toAddress = item.getString("toAddress")
             val timestamp = item.getString("timestamp")
-            val productName = item.optString("productName", "아메리카노") // 상품명 추가 (기본값: 아메리카노)
+            
+            // 상품명을 고정값으로 설정 (인코딩 문제 회피)
+            val productName = "CUBE COFFEE"
             
             Log.i(TAG, "인쇄 작업 처리 시작 - ID: $printId, txHash: $txHash, 상품: $productName")
             
@@ -285,10 +288,10 @@ class ServerPollingServiceV2 {
                 connectTimeout = 10000
                 readTimeout = 15000
                 
-                // ngrok 요청에 필요한 헤더 추가 - ✅ EUC-KR 명시
-                setRequestProperty("Content-Type", "application/json; charset=EUC-KR")
-                setRequestProperty("Accept", "application/json; charset=EUC-KR")
-                setRequestProperty("Accept-Charset", "EUC-KR")
+                // ngrok 요청에 필요한 헤더 추가 - ✅ UTF-8 명시
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("Accept", "application/json; charset=UTF-8")
+                setRequestProperty("Accept-Charset", "UTF-8")
                 setRequestProperty("User-Agent", "Android-NDP-Printer/1.0")
                 setRequestProperty("ngrok-skip-browser-warning", "true")
                 
@@ -306,8 +309,8 @@ class ServerPollingServiceV2 {
             
             Log.d(TAG, "전송 데이터: ${requestBody}")
             
-            // ✅ 수정: EUC-KR 인코딩으로 전송
-            OutputStreamWriter(connection.outputStream, Charset.forName("EUC-KR")).use { writer ->
+            // ✅ 수정: UTF-8 인코딩으로 전송
+            OutputStreamWriter(connection.outputStream, StandardCharsets.UTF_8).use { writer ->
                 writer.write(requestBody.toString())
                 writer.flush()
             }
@@ -316,9 +319,9 @@ class ServerPollingServiceV2 {
             Log.d(TAG, "상태 업데이트 응답: HTTP $responseCode (ID: $printId, 상태: $status)")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                // ✅ 수정: EUC-KR 인코딩 명시
+                // ✅ 수정: UTF-8 인코딩 명시
                 val response = BufferedReader(
-                    InputStreamReader(connection.inputStream, "EUC-KR")
+                    InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
                 ).use { 
                     it.readText() 
                 }
@@ -382,9 +385,9 @@ class ServerPollingServiceV2 {
             Log.d(TAG, "서버 연결 테스트 응답: HTTP $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                // ✅ 수정: EUC-KR 인코딩 명시
+                // ✅ 수정: UTF-8 인코딩 명시
                 val response = BufferedReader(
-                    InputStreamReader(connection.inputStream, "EUC-KR")
+                    InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
                 ).use { 
                     it.readText() 
                 }

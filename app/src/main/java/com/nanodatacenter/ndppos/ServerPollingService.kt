@@ -105,7 +105,7 @@ class ServerPollingService {
             Log.d(TAG, "서버 응답 코드: $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = BufferedReader(InputStreamReader(connection.inputStream)).use { 
+                val response = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { 
                     it.readText() 
                 }
                 
@@ -117,7 +117,7 @@ class ServerPollingService {
                 
                 // 오류 응답 내용 읽기
                 val errorResponse = try {
-                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream)).use { 
+                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)).use { 
                         it.readText() 
                     }
                 } catch (e: Exception) {
@@ -179,7 +179,9 @@ class ServerPollingService {
             val fromAddress = item.getString("fromAddress")
             val toAddress = item.getString("toAddress")
             val timestamp = item.getString("timestamp")
-            val productName = item.optString("productName", "아메리카노") // 상품명 추가 (기본값: 아메리카노)
+            
+            // 상품명을 고정값으로 설정 (인코딩 문제 회피)
+            val productName = "CUBE COFFEE"
             
             Log.i(TAG, "인쇄 작업 처리 시작 - ID: $printId, txHash: $txHash, 상품: $productName")
             
@@ -261,13 +263,13 @@ class ServerPollingService {
             Log.d(TAG, "상태 업데이트 응답: HTTP $responseCode (ID: $printId, 상태: $status)")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = BufferedReader(InputStreamReader(connection.inputStream)).use { 
+                val response = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { 
                     it.readText() 
                 }
                 Log.d(TAG, "상태 업데이트 성공: $response")
             } else {
                 val errorResponse = try {
-                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream)).use { 
+                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)).use { 
                         it.readText() 
                     }
                 } catch (e: Exception) {
@@ -315,14 +317,14 @@ class ServerPollingService {
             Log.d(TAG, "서버 연결 테스트 응답: HTTP $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = BufferedReader(InputStreamReader(connection.inputStream)).use { 
+                val response = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { 
                     it.readText() 
                 }
                 Log.d(TAG, "서버 연결 성공! 응답: $response")
                 true
             } else {
                 val errorResponse = try {
-                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream)).use { 
+                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)).use { 
                         it.readText() 
                     }
                 } catch (e: Exception) {

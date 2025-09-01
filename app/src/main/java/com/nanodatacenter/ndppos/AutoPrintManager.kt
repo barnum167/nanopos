@@ -131,7 +131,7 @@ class AutoPrintManager {
         commands.addAll(getLineFeed())
         
         // 상품명 (데이터에서 가져오거나 기본값 사용)
-        val productName = receiptData.productName ?: "아메리카노"
+        val productName = receiptData.productName ?: "CUBE COFFEE"
         commands.addAll(createInfoLine("상품명", productName))
         commands.addAll(getLineFeed())
         
