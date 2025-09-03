@@ -22,12 +22,8 @@ class ServerPollingServiceV2 {
     companion object {
         private const val TAG = "ServerPollingService"
         private const val POLLING_INTERVAL = 3000L // 3초마다 폴링
-        // 실제 서버 주소로 변경 - PC의 실제 IP 주소 사용
-        private const val SERVER_BASE_URL = "http://192.168.1.100:3000" // 환경에 맞게 수정 필요
-        // 다른 가능한 주소들:
-        // - "http://10.0.0.100:3000" (일반적인 로컬 네트워크)
-        // - "http://172.16.0.100:3000" (사설 네트워크)  
-        // - "http://localhost:3000" (같은 기기에서 테스트 시)
+        private const val SERVER_BASE_URL = "https://3e303f3d09f8.ngrok-free.app" // 서버 IP 주소 (환경에 맞게 수정)
+        // 실제 사용 시 PC의 IP 주소로 변경: 예) "http://192.168.1.100:3000"
         
         // SSL 검증 우회를 위한 설정 (개발 환경용)
         private fun disableSSLVerification() {
@@ -64,8 +60,6 @@ class ServerPollingServiceV2 {
     private var isPolling = false
     private var pollingJob: Job? = null
     private var autoPrintManager: AutoPrintManager? = null
-    private var consecutiveFailures = 0 // 연속 실패 횟수
-    private var maxFailures = 10 // 최대 실패 허용 횟수
     
     /**
      * 폴링 서비스 시작
@@ -93,21 +87,10 @@ class ServerPollingServiceV2 {
             while (isPolling) {
                 try {
                     checkPrintQueue()
-                    consecutiveFailures = 0 // 성공 시 실패 카운터 리셋
                     delay(POLLING_INTERVAL)
                 } catch (e: Exception) {
-                    consecutiveFailures++
-                    Log.e(TAG, "폴링 중 오류 발생 (${consecutiveFailures}/${maxFailures}): ${e.message}")
-                    
-                    if (consecutiveFailures >= maxFailures) {
-                        Log.e(TAG, "연속 실패 한계 도달, 폴링 일시 중지 (60초)")
-                        delay(60000) // 60초 대기
-                        consecutiveFailures = 0 // 카운터 리셋
-                    } else {
-                        // 실패 횟수에 따라 대기 시간 조정 (지수 백오프)
-                        val backoffDelay = minOf(POLLING_INTERVAL * consecutiveFailures, 30000L)
-                        delay(backoffDelay)
-                    }
+                    Log.e(TAG, "폴링 중 오류 발생: ${e.message}")
+                    delay(POLLING_INTERVAL * 2) // 오류 시 더 긴 대기
                 }
             }
         }
@@ -173,11 +156,11 @@ class ServerPollingServiceV2 {
                     it.readText() 
                 }
                 
-                Log.d(TAG, "✅ 서버 연결 성공, 응답: $response")
+                Log.d(TAG, "서버 응답 성공: $response")
                 processQueueResponse(response)
                 
             } else {
-                Log.w(TAG, "❌ 서버 요청 실패: HTTP $responseCode")
+                Log.w(TAG, "서버 요청 실패: HTTP $responseCode")
                 
                 // 오류 응답 내용 읽기 - ✅ UTF-8 인코딩 적용
                 val errorResponse = try {
@@ -191,7 +174,6 @@ class ServerPollingServiceV2 {
                 }
                 
                 Log.e(TAG, "서버 오류 응답: $errorResponse")
-                throw Exception("서버 응답 오류: HTTP $responseCode - $errorResponse")
             }
             
         } catch (e: java.net.ConnectException) {

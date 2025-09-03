@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#f5f5f5"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 타이틀 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🖨️ NDP 프린터"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:gravity="center"
+            android:padding="16dp"
+            android:background="@drawable/rounded_background"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 인쇄 내용 입력 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📝 인쇄할 내용 입력"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#1976D2"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/et_print_content"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:hint="인쇄할 내용을 입력하세요..."
+            android:textSize="14sp"
+            android:padding="12dp"
+            android:background="@drawable/rounded_background"
+            android:gravity="top|start"
+            android:inputType="textMultiLine|textCapSentences"
+            android:scrollbars="vertical"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 인코딩 선택 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔤 인코딩 선택 (한글 지원)"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <RadioGroup
+            android:id="@+id/rg_encoding"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/rounded_background"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rb_utf8"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="UTF-8"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rb_euc_kr"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="EUC-KR" />
+
+            <RadioButton
+                android:id="@+id/rb_cp949"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="CP949" />
+
+        </RadioGroup>
+
+        <!-- 간단 출력 모드 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✨ 출력 모드"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_background"
+            android:padding="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_preferences"
+                android:layout_marginEnd="12dp"
+                android:alpha="0.7" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="간단 출력 모드"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="헤더, 푸터 없이 순수 텍스트만 출력"
+                    android:textSize="13sp"
+                    android:textColor="#666666" />
+
+            </LinearLayout>
+
+            <Switch
+                android:id="@+id/switch_simple_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+
+        </LinearLayout>
+
+        <!-- 프린트 버튼 -->
+        <Button
+            android:id="@+id/btn_print"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🖨️ 인쇄하기"
+            android:textSize="18sp"
+            android:textColor="#ffffff"
+            android:background="@drawable/button_green"
+            android:padding="20dp"
+            android:layout_marginBottom="12dp"
+            android:elevation="2dp" />
+
+        <!-- 테스트 프린트 버튼 -->
+        <Button
+            android:id="@+id/btn_test_print"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🧪 테스트 인쇄"
+            android:textSize="16sp"
+            android:textColor="#ffffff"
+            android:background="@drawable/button_blue"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 한국어 테스트 버튼 -->
+        <Button
+            android:id="@+id/btn_korean_test"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🇰🇷 한국어 테스트 인쇄"
+            android:textSize="16sp"
+            android:textColor="#ffffff"
+            android:background="@drawable/button_orange"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 자동 인쇄 시스템 섹션 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🤖 자동 인쇄 시스템"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#1976D2"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 서버 연결 상태 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_background"
+            android:padding="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_mylocation"
+                android:layout_marginEnd="12dp"
+                android:alpha="0.7" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="서버 연결 상태"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+
+                <TextView
+                    android:id="@+id/tv_server_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="확인 중..."
+                    android:textSize="13sp"
+                    android:textColor="#666666" />
+
+            </LinearLayout>
+
+            <View
+                android:id="@+id/view_server_indicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:background="@drawable/rounded_background"
+                android:backgroundTint="#FFA726" />
+
+        </LinearLayout>
+
+        <!-- 자동 인쇄 제어 버튼 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/btn_start_auto_print"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="▶️ 자동 인쇄 시작"
+                android:textSize="14sp"
+                android:textColor="#ffffff"
+                android:background="@drawable/button_green"
+                android:padding="12dp"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btn_stop_auto_print"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⏹️ 자동 인쇄 중지"
+                android:textSize="14sp"
+                android:textColor="#ffffff"
+                android:background="@drawable/button_purple"
+                android:padding="12dp"
+                android:layout_marginStart="6dp"
+                android:enabled="false" />
+
+        </LinearLayout>
+
+        <!-- 자동 인쇄 상태 표시 -->
+        <TextView
+            android:id="@+id/tv_auto_print_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="자동 인쇄 시스템 대기 중"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:padding="12dp"
+            android:background="@drawable/status_background"
+            android:layout_marginBottom="16dp"
+            android:gravity="center" />
+
+        <!-- 상태 표시 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📊 프린터 상태"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="프린터 준비 중..."
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:padding="16dp"
+            android:background="@drawable/info_background"
+            android:layout_marginBottom="16dp"
+            android:minHeight="100dp"
+            android:gravity="center" />
+
+        <!-- 정보 표시 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚙️ 시스템 정보"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="• 프린터 포트: /dev/ttyS4\n• 전송 속도: 115200 bps\n• 프로토콜: EPSON ESC/POS\n• 한글 지원: UTF-8, EUC-KR, CP949\n• Android 6.0+ 호환"
+            android:textSize="13sp"
+            android:textColor="#666666"
+            android:padding="12dp"
+            android:background="@drawable/log_info_background"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 사용 방법 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📖 사용 방법"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. 인쇄할 내용을 입력하세요\n2. 한글이 포함된 경우 적절한 인코딩을 선택하세요\n3. [인쇄하기] 버튼을 누르세요\n\n※ 한글이 깨지는 경우 다른 인코딩을 시도해보세요"
+            android:textSize="13sp"
+            android:textColor="#666666"
+            android:padding="12dp"
+            android:background="@drawable/rounded_background"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 버전 정보 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NDP Printer v2.0 | Print Only Version | ttyS4 Port"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>

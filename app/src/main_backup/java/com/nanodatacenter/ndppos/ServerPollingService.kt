@@ -8,64 +8,24 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
-import javax.net.ssl.*
-import java.security.cert.X509Certificate
 
 /**
- * 서버 폴링 서비스 (SSL 검증 우회 포함)
+ * 서버 폴링 서비스
  * 주기적으로 서버의 인쇄 대기열을 확인하여 인쇄 요청을 처리합니다
  */
-class ServerPollingServiceV2 {
+class ServerPollingService {
     
     companion object {
         private const val TAG = "ServerPollingService"
         private const val POLLING_INTERVAL = 3000L // 3초마다 폴링
-        // 실제 서버 주소로 변경 - PC의 실제 IP 주소 사용
-        private const val SERVER_BASE_URL = "http://192.168.1.100:3000" // 환경에 맞게 수정 필요
-        // 다른 가능한 주소들:
-        // - "http://10.0.0.100:3000" (일반적인 로컬 네트워크)
-        // - "http://172.16.0.100:3000" (사설 네트워크)  
-        // - "http://localhost:3000" (같은 기기에서 테스트 시)
-        
-        // SSL 검증 우회를 위한 설정 (개발 환경용)
-        private fun disableSSLVerification() {
-            try {
-                Log.d(TAG, "SSL 검증 우회 설정 시작")
-                
-                // 모든 인증서를 신뢰하는 TrustManager 생성
-                val trustAllCerts = arrayOf<TrustManager>(
-                    object : X509TrustManager {
-                        override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                        override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                    }
-                )
-                
-                // SSL 컨텍스트 설정
-                val sslContext = SSLContext.getInstance("SSL")
-                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
-                
-                // 기본 SSL 소켓 팩토리 설정
-                HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
-                
-                // 호스트명 검증 우회
-                HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
-                
-                Log.d(TAG, "SSL 검증 우회 설정 완료")
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "SSL 검증 우회 설정 실패: ${e.message}")
-            }
-        }
+        private const val SERVER_BASE_URL = "https://3e303f3d09f8.ngrok-free.app" // 서버 IP 주소 (환경에 맞게 수정)
+        // 실제 사용 시 PC의 IP 주소로 변경: 예) "http://192.168.1.100:3000"
     }
     
     private var isPolling = false
     private var pollingJob: Job? = null
     private var autoPrintManager: AutoPrintManager? = null
-    private var consecutiveFailures = 0 // 연속 실패 횟수
-    private var maxFailures = 10 // 최대 실패 허용 횟수
     
     /**
      * 폴링 서비스 시작
@@ -76,9 +36,6 @@ class ServerPollingServiceV2 {
             return
         }
         
-        // SSL 검증 우회 설정 (개발 환경용)
-        disableSSLVerification()
-        
         this.autoPrintManager = autoPrintManager
         isPolling = true
         
@@ -86,28 +43,16 @@ class ServerPollingServiceV2 {
         Log.i(TAG, "서버 폴링 서비스 시작")
         Log.i(TAG, "서버 주소: $SERVER_BASE_URL")
         Log.i(TAG, "폴링 간격: ${POLLING_INTERVAL}ms")
-        Log.i(TAG, "SSL 검증: 우회 (개발용)")
         Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         
         pollingJob = CoroutineScope(Dispatchers.IO).launch {
             while (isPolling) {
                 try {
                     checkPrintQueue()
-                    consecutiveFailures = 0 // 성공 시 실패 카운터 리셋
                     delay(POLLING_INTERVAL)
                 } catch (e: Exception) {
-                    consecutiveFailures++
-                    Log.e(TAG, "폴링 중 오류 발생 (${consecutiveFailures}/${maxFailures}): ${e.message}")
-                    
-                    if (consecutiveFailures >= maxFailures) {
-                        Log.e(TAG, "연속 실패 한계 도달, 폴링 일시 중지 (60초)")
-                        delay(60000) // 60초 대기
-                        consecutiveFailures = 0 // 카운터 리셋
-                    } else {
-                        // 실패 횟수에 따라 대기 시간 조정 (지수 백오프)
-                        val backoffDelay = minOf(POLLING_INTERVAL * consecutiveFailures, 30000L)
-                        delay(backoffDelay)
-                    }
+                    Log.e(TAG, "폴링 중 오류 발생: ${e.message}")
+                    delay(POLLING_INTERVAL * 2) // 오류 시 더 긴 대기
                 }
             }
         }
@@ -138,20 +83,14 @@ class ServerPollingServiceV2 {
             val url = URL("$SERVER_BASE_URL/api/receipt/queue")
             val connection = url.openConnection() as HttpURLConnection
             
-            // HTTPS 연결인 경우 SSL 설정 적용
-            if (connection is HttpsURLConnection) {
-                connection.hostnameVerifier = HostnameVerifier { _, _ -> true }
-            }
-            
             connection.apply {
                 requestMethod = "GET"
                 connectTimeout = 10000 // 연결 타임아웃 증가
                 readTimeout = 15000 // 읽기 타임아웃 증가
                 
-                // ngrok 요청에 필요한 헤더 추가 - ✅ UTF-8 명시
-                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                setRequestProperty("Accept", "application/json; charset=UTF-8")
-                setRequestProperty("Accept-Charset", "UTF-8")
+                // ngrok 요청에 필요한 헤더 추가
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Android-NDP-Printer/1.0")
                 setRequestProperty("ngrok-skip-browser-warning", "true")
                 
@@ -166,24 +105,19 @@ class ServerPollingServiceV2 {
             Log.d(TAG, "서버 응답 코드: $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                // ✅ 수정: UTF-8 인코딩 명시
-                val response = BufferedReader(
-                    InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
-                ).use { 
+                val response = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { 
                     it.readText() 
                 }
                 
-                Log.d(TAG, "✅ 서버 연결 성공, 응답: $response")
+                Log.d(TAG, "서버 응답 성공: $response")
                 processQueueResponse(response)
                 
             } else {
-                Log.w(TAG, "❌ 서버 요청 실패: HTTP $responseCode")
+                Log.w(TAG, "서버 요청 실패: HTTP $responseCode")
                 
-                // 오류 응답 내용 읽기 - ✅ UTF-8 인코딩 적용
+                // 오류 응답 내용 읽기
                 val errorResponse = try {
-                    BufferedReader(
-                        InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)
-                    ).use { 
+                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)).use { 
                         it.readText() 
                     }
                 } catch (e: Exception) {
@@ -191,7 +125,6 @@ class ServerPollingServiceV2 {
                 }
                 
                 Log.e(TAG, "서버 오류 응답: $errorResponse")
-                throw Exception("서버 응답 오류: HTTP $responseCode - $errorResponse")
             }
             
         } catch (e: java.net.ConnectException) {
@@ -296,20 +229,14 @@ class ServerPollingServiceV2 {
             val url = URL("$SERVER_BASE_URL/api/receipt/status")
             val connection = url.openConnection() as HttpURLConnection
             
-            // HTTPS 연결인 경우 SSL 설정 적용
-            if (connection is HttpsURLConnection) {
-                connection.hostnameVerifier = HostnameVerifier { _, _ -> true }
-            }
-            
             connection.apply {
                 requestMethod = "POST"
                 connectTimeout = 10000
                 readTimeout = 15000
                 
-                // ngrok 요청에 필요한 헤더 추가 - ✅ UTF-8 명시
-                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                setRequestProperty("Accept", "application/json; charset=UTF-8")
-                setRequestProperty("Accept-Charset", "UTF-8")
+                // ngrok 요청에 필요한 헤더 추가
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Android-NDP-Printer/1.0")
                 setRequestProperty("ngrok-skip-browser-warning", "true")
                 
@@ -327,7 +254,6 @@ class ServerPollingServiceV2 {
             
             Log.d(TAG, "전송 데이터: ${requestBody}")
             
-            // ✅ 수정: UTF-8 인코딩으로 전송
             OutputStreamWriter(connection.outputStream, StandardCharsets.UTF_8).use { writer ->
                 writer.write(requestBody.toString())
                 writer.flush()
@@ -337,16 +263,13 @@ class ServerPollingServiceV2 {
             Log.d(TAG, "상태 업데이트 응답: HTTP $responseCode (ID: $printId, 상태: $status)")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                // ✅ 수정: UTF-8 인코딩 명시
-                val response = BufferedReader(
-                    InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
-                ).use { 
+                val response = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { 
                     it.readText() 
                 }
                 Log.d(TAG, "상태 업데이트 성공: $response")
             } else {
                 val errorResponse = try {
-                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream)).use { 
+                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)).use { 
                         it.readText() 
                     }
                 } catch (e: Exception) {
@@ -369,28 +292,19 @@ class ServerPollingServiceV2 {
      * 서버 연결 테스트
      */
     suspend fun testServerConnection(): Boolean {
-        // SSL 검증 우회 설정
-        disableSSLVerification()
-        
         return try {
             Log.d(TAG, "서버 연결 테스트 시작: $SERVER_BASE_URL")
             
             val url = URL("$SERVER_BASE_URL/api/receipt/stats")
             val connection = url.openConnection() as HttpURLConnection
             
-            // HTTPS 연결인 경우 SSL 설정 적용
-            if (connection is HttpsURLConnection) {
-                connection.hostnameVerifier = HostnameVerifier { _, _ -> true }
-            }
-            
             connection.apply {
                 requestMethod = "GET"
                 connectTimeout = 8000 // 연결 타임아웃 증가
                 readTimeout = 10000 // 읽기 타임아웃 증가
                 
-                // ngrok 요청에 필요한 헤더 추가 - ✅ EUC-KR 명시
-                setRequestProperty("Accept", "application/json; charset=EUC-KR")
-                setRequestProperty("Accept-Charset", "EUC-KR")
+                // ngrok 요청에 필요한 헤더 추가
+                setRequestProperty("Accept", "application/json")
                 setRequestProperty("User-Agent", "Android-NDP-Printer/1.0")
                 setRequestProperty("ngrok-skip-browser-warning", "true")
                 
@@ -403,17 +317,14 @@ class ServerPollingServiceV2 {
             Log.d(TAG, "서버 연결 테스트 응답: HTTP $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                // ✅ 수정: UTF-8 인코딩 명시
-                val response = BufferedReader(
-                    InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)
-                ).use { 
+                val response = BufferedReader(InputStreamReader(connection.inputStream, StandardCharsets.UTF_8)).use { 
                     it.readText() 
                 }
                 Log.d(TAG, "서버 연결 성공! 응답: $response")
                 true
             } else {
                 val errorResponse = try {
-                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream)).use { 
+                    BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, StandardCharsets.UTF_8)).use { 
                         it.readText() 
                     }
                 } catch (e: Exception) {
