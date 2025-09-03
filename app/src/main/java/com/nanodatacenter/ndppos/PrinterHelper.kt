@@ -575,10 +575,11 @@ class PrinterHelper {
     }
     
     /**
-     * 현재 시간을 포맷팅해서 반환
+     * 현재 시간을 포맷팅해서 반환 (한국시간 기준)
      */
     private fun getCurrentFormattedTime(): String {
         val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        dateFormat.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul")
         return dateFormat.format(java.util.Date())
     }
     

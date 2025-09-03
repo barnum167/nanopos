@@ -300,10 +300,11 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
-     * 날짜 및 시간 업데이트
+     * 날짜 및 시간 업데이트 (한국시간 기준)
      */
     private fun updateDateTime() {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        dateFormat.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul")
         val currentDateTime = dateFormat.format(Date())
         tvDateTime.text = currentDateTime
     }

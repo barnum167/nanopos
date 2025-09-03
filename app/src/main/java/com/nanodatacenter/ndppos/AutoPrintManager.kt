@@ -36,7 +36,8 @@ class AutoPrintManager {
             Log.i(TAG, "자동 영수증 인쇄 시작")
             Log.i(TAG, "인쇄 ID: ${receiptData.printId}")
             Log.i(TAG, "거래 해시: ${receiptData.transactionHash}")
-            Log.i(TAG, "금액: ${receiptData.amount} ${receiptData.token}")
+            val normalizedToken = normalizeTokenSymbol(receiptData.token)
+            Log.i(TAG, "금액: ${receiptData.amount} ${receiptData.token} -> $normalizedToken")
             Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             
             // 영수증 데이터 생성
@@ -157,8 +158,9 @@ class AutoPrintManager {
         commands.addAll(createInfoLine("거래 해시", shortenHash(receiptData.transactionHash)))
         commands.addAll(getLineFeed())
         
-        // 결제 금액
-        commands.addAll(createInfoLine("결제 금액", "${receiptData.amount} ${receiptData.token}"))
+        // 결제 금액 (포맷팅 적용)
+        val formattedAmount = formatAmount(receiptData.amount, receiptData.token)
+        commands.addAll(createInfoLine("결제 금액", formattedAmount))
         commands.addAll(getLineFeed())
         
         // 거래 시간
@@ -188,12 +190,14 @@ class AutoPrintManager {
         commands.addAll(createInfoLine("거래 해시", shortenHash(receiptData.transactionHash)))
         commands.addAll(getLineFeed())
         
-        // 결제 금액
-        commands.addAll(createInfoLine("결제 금액", "${receiptData.amount} ${receiptData.token}"))
+        // 결제 금액 (포맷팅 적용)
+        val formattedAmount = formatAmount(receiptData.amount, receiptData.token)
+        commands.addAll(createInfoLine("결제 금액", formattedAmount))
         commands.addAll(getLineFeed())
         
-        // 토큰 정보
-        commands.addAll(createInfoLine("토큰", receiptData.token))
+        // 토큰 정보 (정규화된 심볼 사용)
+        val normalizedToken = normalizeTokenSymbol(receiptData.token)
+        commands.addAll(createInfoLine("토큰", normalizedToken))
         commands.addAll(getLineFeed())
         
         commands.addAll(createSeparatorLine())
@@ -324,26 +328,113 @@ class AutoPrintManager {
     }
     
     /**
-     * 타임스탬프 포맷팅
+     * 타임스탬프 포맷팅 (한국시간 기준)
      */
     private fun formatTimestamp(timestamp: String): String {
         return try {
             val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+            inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            
             val outputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            outputFormat.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul")
+            
             val date = inputFormat.parse(timestamp)
             outputFormat.format(date ?: Date())
         } catch (e: Exception) {
             Log.w(TAG, "타임스탬프 파싱 실패: $timestamp")
-            timestamp.take(19).replace('T', ' ')
+            // 실패 시에도 한국시간으로 현재 시간 반환
+            val fallbackFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            fallbackFormat.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul")
+            fallbackFormat.format(Date())
         }
     }
     
     /**
-     * 현재 시간 문자열 반환
+     * 현재 시간 문자열 반환 (한국시간 기준)
      */
     private fun getCurrentTimeString(): String {
         val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        format.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul")
         return format.format(Date())
+    }
+    
+    /**
+     * 토큰 심볼 정규화 (주소를 심볼로 변환)
+     */
+    private fun normalizeTokenSymbol(token: String): String {
+        return when {
+            // 주소 형태인 경우 TUSD로 변환
+            token.startsWith("0x", ignoreCase = true) && token.length == 42 -> "TUSD"
+            // 이미 심볼인 경우 그대로 사용
+            token.equals("TUSD", ignoreCase = true) -> "TUSD"
+            token.equals("USDT", ignoreCase = true) -> "TUSD" // USDT도 TUSD로 통일
+            token.equals("USD", ignoreCase = true) -> "TUSD"
+            // 기타 경우 TUSD로 기본 설정
+            else -> {
+                Log.d(TAG, "알 수 없는 토큰 형태를 TUSD로 변환: $token")
+                "TUSD"
+            }
+        }
+    }
+
+    /**
+     * 결제 금액 포맷팅 (Wei 단위를 적절한 토큰 단위로 변환)
+     */
+    private fun formatAmount(amount: String, token: String): String {
+        return try {
+            val normalizedToken = normalizeTokenSymbol(token)
+            Log.d(TAG, "금액 포맷팅 시작: amount=$amount, token=$token -> $normalizedToken")
+            
+            // Wei 단위를 토큰 단위로 변환 (18 decimals 기준)
+            val weiAmount = when {
+                amount.startsWith("0x", ignoreCase = true) -> {
+                    // 16진수인 경우
+                    java.math.BigInteger(amount.substring(2), 16)
+                }
+                amount.length > 15 && amount.all { it.isDigit() } -> {
+                    // 매우 큰 숫자인 경우 (Wei 단위로 간주)
+                    java.math.BigInteger(amount)
+                }
+                else -> {
+                    // 일반 숫자인 경우도 Wei로 간주하여 변환
+                    val numericAmount = amount.toLongOrNull() ?: 0L
+                    java.math.BigInteger.valueOf(numericAmount)
+                }
+            }
+            
+            // Wei를 토큰 단위로 변환 (1 token = 10^18 wei)
+            val divisor = java.math.BigDecimal("1000000000000000000") // 10^18
+            val tokenAmount = weiAmount.toBigDecimal().divide(divisor)
+            
+            Log.d(TAG, "Wei -> 토큰 변환: $amount Wei -> $tokenAmount $normalizedToken")
+            
+            // 소수점 처리: 0이면 정수로, 아니면 최대 6자리까지 표시
+            val formatted = if (tokenAmount.compareTo(java.math.BigDecimal.ZERO) == 0) {
+                "0"
+            } else if (tokenAmount.scale() <= 0 || tokenAmount.remainder(java.math.BigDecimal.ONE).compareTo(java.math.BigDecimal.ZERO) == 0) {
+                tokenAmount.toBigInteger().toString()
+            } else {
+                // 소수점이 있는 경우 최대 6자리까지, 끝자리 0 제거
+                tokenAmount.setScale(6, java.math.RoundingMode.HALF_UP)
+                    .stripTrailingZeros()
+                    .toPlainString()
+            }
+            
+            val result = "$formatted $normalizedToken"
+            Log.d(TAG, "최종 포맷: $result")
+            result
+            
+        } catch (e: Exception) {
+            Log.w(TAG, "금액 포맷팅 실패: $amount, 오류: ${e.message}")
+            val normalizedToken = normalizeTokenSymbol(token)
+            // 실패 시 원본을 축약하여 표시
+            val displayAmount = if (amount.length > 20) {
+                "${amount.take(8)}...${amount.takeLast(4)}"
+            } else {
+                amount
+            }
+            "$displayAmount $normalizedToken"
+        }
     }
     
     /**
