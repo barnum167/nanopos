@@ -5,7 +5,7 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">192.168.1.0/24</domain>
-        <domain includeSubdomains="true">https://a7b4aeba3e88.ngrok-free.app</domain>
+        <domain includeSubdomains="true">https://3e303f3d09f8.ngrok-free.app</domain>
         <domain includeSubdomains="true">ngrok-free.app</domain>
         <domain includeSubdomains="true">ngrok.io</domain>
         <domain includeSubdomains="true">ngrok.com</domain>
