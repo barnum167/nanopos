@@ -38,6 +38,12 @@ class AutoPrintManager {
             Log.i(TAG, "거래 해시: ${receiptData.transactionHash}")
             val normalizedToken = normalizeTokenSymbol(receiptData.token)
             Log.i(TAG, "금액: ${receiptData.amount} ${receiptData.token} -> $normalizedToken")
+            
+            // 한국어 로케일 강제 설정
+            val originalLocale = Locale.getDefault()
+            Locale.setDefault(Locale.KOREA)
+            Log.i(TAG, "로케일 설정: ${originalLocale} -> ${Locale.getDefault()}")
+            
             Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             
             // 영수증 데이터 생성
@@ -455,12 +461,61 @@ class AutoPrintManager {
     // === ESC/POS 명령어 헬퍼 메서드들 ===
     
     private fun getInitCommands(): List<Byte> {
-        return listOf(0x1B.toByte(), 0x40.toByte()) + // ESC @ (초기화)
-               listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()) // ESC t 18 (한국어 코드페이지 CP949/EUC-KR)
+        val commands = mutableListOf<Byte>()
+        
+        // 프린터 초기화
+        commands.addAll(listOf(0x1B.toByte(), 0x40.toByte())) // ESC @
+        
+        // 한국어 코드페이지 설정 (여러 방식 시도)
+        commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x25.toByte())) // ESC t 37 (KS X 1001)
+        
+        // 추가: 다른 한국어 코드페이지도 시도
+        commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x15.toByte())) // ESC t 21 (CP949)
+        
+        Log.d(TAG, "초기화 명령 생성: ${commands.size} bytes")
+        return commands
     }
     
     private fun convertStringToBytes(text: String): List<Byte> {
-        return text.toByteArray(Charset.forName("EUC-KR")).toList()
+        Log.d(TAG, "텍스트 변환 시작: '$text'")
+        
+        return try {
+            // EUC-KR 시도
+            val eucKrBytes = text.toByteArray(Charset.forName("EUC-KR"))
+            Log.d(TAG, "EUC-KR 변환 성공: '$text' -> ${eucKrBytes.size} bytes")
+            logTextBytes("EUC-KR", text, eucKrBytes)
+            eucKrBytes.toList()
+        } catch (e: Exception) {
+            Log.w(TAG, "EUC-KR 변환 실패, CP949 시도: ${e.message}")
+            try {
+                val cp949Bytes = text.toByteArray(Charset.forName("CP949"))
+                Log.d(TAG, "CP949 변환 성공: '$text' -> ${cp949Bytes.size} bytes")
+                logTextBytes("CP949", text, cp949Bytes)
+                cp949Bytes.toList()
+            } catch (e2: Exception) {
+                Log.w(TAG, "CP949도 실패, UTF-8 사용: ${e2.message}")
+                val utf8Bytes = text.toByteArray(Charsets.UTF_8)
+                logTextBytes("UTF-8", text, utf8Bytes)
+                utf8Bytes.toList()
+            }
+        }
+    }
+    
+    /**
+     * 텍스트 바이트 변환 로깅
+     */
+    private fun logTextBytes(encoding: String, text: String, bytes: ByteArray) {
+        val hexString = bytes.take(20).joinToString(" ") { String.format("%02X", it) }
+        Log.d(TAG, "[$encoding] '$text' -> $hexString${if (bytes.size > 20) "..." else ""}")
+        
+        // 역변환 테스트
+        try {
+            val decoded = String(bytes, Charset.forName(encoding))
+            val isCorrect = decoded == text
+            Log.d(TAG, "[$encoding] 역변환 테스트: '$decoded' (${if (isCorrect) "성공" else "실패"})")
+        } catch (e: Exception) {
+            Log.w(TAG, "[$encoding] 역변환 실패: ${e.message}")
+        }
     }
     
     private fun getLineFeed(): List<Byte> = listOf(0x0A.toByte())

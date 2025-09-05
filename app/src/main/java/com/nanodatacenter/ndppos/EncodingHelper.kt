@@ -70,7 +70,7 @@ object EncodingHelper {
     fun getPrinterInitCommands(): ByteArray {
         return byteArrayOf(
             0x1B.toByte(), 0x40.toByte(),        // ESC @ (프린터 초기화)
-            0x1B.toByte(), 0x74.toByte(), 0x12.toByte()  // ESC t 18 (한국어 코드페이지 CP949/EUC-KR)
+            0x1B.toByte(), 0x74.toByte(), 0x25.toByte()  // ESC t 37 (한국어 코드페이지 KS X 1001)
         )
     }
     

@@ -321,19 +321,28 @@ class MainActivity : AppCompatActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // 한국어 로케일 강제 설정
+                Locale.setDefault(Locale.KOREA)
+                Log.i(TAG, "테스트 영수증 - 로케일 설정: ${Locale.getDefault()}")
+                
                 val testContent = """
                     ================================
                     NDP POS SYSTEM
                     ================================
-                    날짜: ${SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())}
-                    시간: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())}
+                    날짜: ${SimpleDateFormat("yyyy-MM-dd", Locale.KOREA).format(Date())}
+                    시간: ${SimpleDateFormat("HH:mm:ss", Locale.KOREA).format(Date())}
                     --------------------------------
                     테스트 영수증
                     프린터 상태: 정상
                     ================================
                 """.trimIndent()
                 
-                val printData = printerHelper?.createCleanTextData(testContent, "UTF-8")
+                Log.i(TAG, "테스트 영수증 내용:")
+                testContent.lines().forEach { line ->
+                    Log.i(TAG, "  '$line'")
+                }
+                
+                val printData = printerHelper?.createCleanTextData(testContent, "EUC-KR")
                 if (printData != null) {
                     printer?.setBuffer(printData)
                     printer?.print()

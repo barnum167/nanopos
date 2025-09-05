@@ -95,7 +95,7 @@ class PrinterHelper {
         when (encoding) {
             "EUC-KR", "CP949" -> {
                 // 한국어 코드페이지 설정 (CP949)
-                commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()))
+                commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x25.toByte()))
             }
             "UTF-8" -> {
                 // UTF-8 코드페이지
@@ -244,8 +244,8 @@ class PrinterHelper {
         // 인코딩에 따른 코드페이지 설정
         when (encoding) {
             "EUC-KR", "CP949" -> {
-                // 한국어 코드페이지 설정 (CP949)
-                commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()))
+                // 한국어 코드페이지 설정 (KS X 1001)
+                commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x25.toByte()))
             }
             "UTF-8" -> {
                 // UTF-8 코드페이지
@@ -364,7 +364,7 @@ class PrinterHelper {
     private fun getInitCommands(): List<Byte> {
         Log.d(TAG, "초기화 명령어 생성")
         return listOf(0x1B.toByte(), 0x40.toByte()) + // ESC @ (초기화)
-               listOf(0x1B.toByte(), 0x74.toByte(), 0x12.toByte()) // ESC t 18 (한국어 코드페이지 CP949/EUC-KR)
+               listOf(0x1B.toByte(), 0x74.toByte(), 0x25.toByte()) // ESC t 37 (한국어 코드페이지 KS X 1001)
     }
     
     private fun createHeader(title: String): List<Byte> {
