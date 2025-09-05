@@ -193,6 +193,7 @@ class AutoPrintManager {
         // 결제 금액 (포맷팅 적용)
         val formattedAmount = formatAmount(receiptData.amount, receiptData.token)
         commands.addAll(createInfoLine("결제 금액", formattedAmount))
+        //commands.addAll(createInfoLine("결제 금액", "1"))
         commands.addAll(getLineFeed())
         
         // 토큰 정보 (정규화된 심볼 사용)
@@ -362,19 +363,7 @@ class AutoPrintManager {
      * 토큰 심볼 정규화 (주소를 심볼로 변환)
      */
     private fun normalizeTokenSymbol(token: String): String {
-        return when {
-            // 주소 형태인 경우 TUSD로 변환
-            token.startsWith("0x", ignoreCase = true) && token.length == 42 -> "TUSD"
-            // 이미 심볼인 경우 그대로 사용
-            token.equals("TUSD", ignoreCase = true) -> "TUSD"
-            token.equals("USDT", ignoreCase = true) -> "TUSD" // USDT도 TUSD로 통일
-            token.equals("USD", ignoreCase = true) -> "TUSD"
-            // 기타 경우 TUSD로 기본 설정
-            else -> {
-                Log.d(TAG, "알 수 없는 토큰 형태를 TUSD로 변환: $token")
-                "TUSD"
-            }
-        }
+        return "USDT"
     }
 
     /**

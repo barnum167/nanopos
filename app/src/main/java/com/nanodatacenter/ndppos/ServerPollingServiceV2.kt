@@ -23,7 +23,7 @@ class ServerPollingServiceV2 {
         private const val TAG = "ServerPollingService"
         private const val POLLING_INTERVAL = 3000L // 3초마다 폴링
         // 실제 서버 주소로 변경 - PC의 실제 IP 주소 사용
-        private const val SERVER_BASE_URL = "https://3e303f3d09f8.ngrok-free.app"
+        private const val SERVER_BASE_URL = "http://211.176.180.172:6753"
         
         // SSL 검증 우회를 위한 설정 (개발 환경용)
         private fun disableSSLVerification() {
