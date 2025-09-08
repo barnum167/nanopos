@@ -195,6 +195,7 @@ class PrinterHelperEnglish {
 //        commands.addAll(getLineFeed())
         
         // Thank you message with frame
+        commands.addAll(getAlignCenter())
         commands.addAll(convertStringToBytes("********************************"))
         commands.addAll(getLineFeed())
         commands.addAll(getBoldMediumFont())
