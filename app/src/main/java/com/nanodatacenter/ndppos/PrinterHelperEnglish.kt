@@ -102,7 +102,7 @@ class PrinterHelperEnglish {
         
         // Amount (highlighted)
         commands.addAll(getBoldFont())
-        commands.addAll(createDetailLine("Amount", "${receiptData.amount} ${receiptData.token}"))
+        commands.addAll(createDetailLine("Amount", "${receiptData.amount} USDT"))
         commands.addAll(getNormalFont())
         //commands.addAll(getLineFeed())
         
