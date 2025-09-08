@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="프린터 인코딩 테스트"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 테스트 텍스트 입력 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="테스트 텍스트:"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp" />
+    
+    <EditText
+        android:id="@+id/et_test_text"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:gravity="top"
+        android:inputType="textMultiLine"
+        android:background="@android:drawable/editbox_background"
+        android:padding="8dp"
+        android:textSize="14sp"
+        android:scrollbars="vertical" />
+
+    <!-- 코드페이지 선택 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="코드페이지 선택:"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+    
+    <RadioGroup
+        android:id="@+id/rg_code_page"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        
+        <RadioButton
+            android:id="@+id/rb_cp_25"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0x25"
+            android:checked="true" />
+        
+        <RadioButton
+            android:id="@+id/rb_cp_12"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0x12" />
+        
+        <RadioButton
+            android:id="@+id/rb_cp_0d"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0x0D" />
+        
+        <RadioButton
+            android:id="@+id/rb_cp_ff"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0xFF" />
+    </RadioGroup>
+
+    <!-- 인코딩 선택 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="인코딩 선택:"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+    
+    <RadioGroup
+        android:id="@+id/rg_encoding"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        
+        <RadioButton
+            android:id="@+id/rb_enc_euckr"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="EUC-KR"
+            android:checked="true" />
+        
+        <RadioButton
+            android:id="@+id/rb_enc_cp949"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="CP949" />
+        
+        <RadioButton
+            android:id="@+id/rb_enc_ms949"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="MS949" />
+        
+        <RadioButton
+            android:id="@+id/rb_enc_utf8"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="UTF-8" />
+    </RadioGroup>
+
+    <!-- 인쇄 버튼 -->
+    <Button
+        android:id="@+id/btn_print"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="테스트 인쇄"
+        android:textSize="18sp"
+        android:layout_marginTop="24dp"
+        android:padding="12dp" />
+
+    <!-- 상태 표시 -->
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="준비됨"
+        android:textSize="14sp"
+        android:layout_marginTop="16dp"
+        android:padding="8dp"
+        android:background="#F0F0F0"
+        android:textColor="#333333" />
+
+</LinearLayout>

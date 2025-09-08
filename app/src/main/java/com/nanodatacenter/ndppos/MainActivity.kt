@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var printer: SerialPrinter? = null
     private var printerHelper: PrinterHelper? = null
     private var isPrinterReady = false
+    private var encodingTester: PrinterEncodingTester? = null  // 인코딩 테스터 추가
     
     // 자동 인쇄 시스템 (필요시 사용)
     private var serverPollingService: ServerPollingServiceV2? = null
@@ -118,6 +119,13 @@ class MainActivity : AppCompatActivity() {
             autoPrintManager?.onPrinterStatusTouch()
         }
         
+        // 상태 메시지 길게 터치하면 인코딩 테스트 실행
+        tvStatusMessage.setOnLongClickListener {
+            Log.i(TAG, "인코딩 테스트 메뉴 실행")
+            runEncodingTests()
+            true
+        }
+        
         Log.d(TAG, "UI 요소 초기화 완료")
     }
     
@@ -127,6 +135,7 @@ class MainActivity : AppCompatActivity() {
     private fun initializeComponents() {
         try {
             printerHelper = PrinterHelper()
+            encodingTester = PrinterEncodingTester()  // 인코딩 테스터 초기화
             
             // 자동 인쇄 시스템 초기화 (필요시)
             serverPollingService = ServerPollingServiceV2()
@@ -439,6 +448,84 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "자동 인쇄 시스템 중지 오류: ${e.message}")
         }
+    }
+    
+    /**
+     * 인코딩 테스트 실행
+     */
+    private fun runEncodingTests() {
+        if (!isPrinterReady) {
+            Log.w(TAG, "프린터가 준비되지 않음")
+            tvStatusMessage.text = "프린터를 확인해주세요"
+            return
+        }
+        
+        // 다이얼로그 표시
+        val options = arrayOf(
+            "1. 간단한 테스트 (초기화 없이)",
+            "2. 한국어 코드페이지 테스트",
+            "3. 직접 명령어 테스트",
+            "4. 모든 코드페이지 테스트 (오래 걸림)",
+            "5. 기본 한글 테스트",
+            "6. 테스트 화면 열기 (GUI)"
+        )
+        
+        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
+        builder.setTitle("인코딩 테스트 선택")
+        builder.setItems(options) { _, which ->
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    withContext(Dispatchers.Main) {
+                        tvStatusMessage.text = "테스트 진행 중..."
+                    }
+                    
+                    when (which) {
+                        0 -> {
+                            Log.i(TAG, "간단한 테스트 실행")
+                            encodingTester?.testSimplePrint()
+                        }
+                        1 -> {
+                            Log.i(TAG, "한국어 코드페이지 테스트 실행")
+                            encodingTester?.testKoreanCodePages()
+                        }
+                        2 -> {
+                            Log.i(TAG, "직접 명령어 테스트 실행")
+                            encodingTester?.testDirectCommands()
+                        }
+                        3 -> {
+                            Log.i(TAG, "모든 코드페이지 테스트 실행")
+                            encodingTester?.testAllCodePages()
+                        }
+                        4 -> {
+                            Log.i(TAG, "기본 한글 테스트")
+                            val koreanHelper = KoreanPrinterHelper()
+                            koreanHelper.printSimpleKoreanTest()
+                        }
+                        5 -> {
+                            Log.i(TAG, "테스트 화면 열기")
+                            withContext(Dispatchers.Main) {
+                                val intent = android.content.Intent(this@MainActivity, PrinterTestActivity::class.java)
+                                startActivity(intent)
+                            }
+                        }
+                    }
+                    
+                    withContext(Dispatchers.Main) {
+                        tvStatusMessage.text = "테스트 완료 - 결과 확인"
+                    }
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "테스트 실행 오류: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        tvStatusMessage.text = "테스트 오류: ${e.message}"
+                    }
+                }
+            }
+        }
+        builder.setNegativeButton("취소") { dialog, _ ->
+            dialog.dismiss()
+        }
+        builder.show()
     }
     
     override fun onResume() {
