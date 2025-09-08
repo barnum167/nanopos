@@ -16,6 +16,11 @@ class AutoPrintManager {
         private const val TAG = "AutoPrintManager"
         private const val PRINTER_PORT = "/dev/ttyS4"
         private const val BAUD_RATE = 115200
+        
+        // 테스트 인쇄를 위한 변수
+        private var testPrintTouchCount = 0
+        private var lastTestTouchTime = 0L
+        private const val TEST_TOUCH_RESET_TIME = 3000L // 3초 후 카운트 리셋
     }
     
     private val printer: SerialPrinter by lazy {
@@ -27,6 +32,57 @@ class AutoPrintManager {
     
     private val printerHelper = PrinterHelper()
     
+    /**
+     * 프린터 상태 터치 이벤트 처리 (10번 터치시 테스트 인쇄)
+     */
+    fun onPrinterStatusTouch() {
+        val currentTime = System.currentTimeMillis()
+        
+        // 3초 이상 지났으면 카운트 리셋
+        if (currentTime - lastTestTouchTime > TEST_TOUCH_RESET_TIME) {
+            testPrintTouchCount = 0
+        }
+        
+        testPrintTouchCount++
+        lastTestTouchTime = currentTime
+        
+        Log.d(TAG, "프린터 상태 터치: $testPrintTouchCount/10")
+        
+        if (testPrintTouchCount >= 10) {
+            Log.i(TAG, "🎯 테스트 인쇄 트리거 - 10번 터치 완료!")
+            testPrintTouchCount = 0 // 리셋
+            
+            // 테스트 인쇄 실행
+            Thread {
+                printTestReceipt()
+            }.start()
+        }
+    }
+    
+    /**
+     * 테스트용 한국어 영수증 인쇄
+     */
+    private fun printTestReceipt() {
+        Log.i(TAG, "═══════════════════════════════════════════")
+        Log.i(TAG, "🧪 테스트 인쇄 시작 - 한국어 인코딩 검증")
+        Log.i(TAG, "═══════════════════════════════════════════")
+        
+        try {
+            val testData = createTestPrintData()
+            
+            // 프린터로 전송
+            printer.setBuffer(testData)
+            printer.print()
+            
+            // 인쇄 완료 대기
+            Thread.sleep(3000)
+            
+            Log.i(TAG, "✅ 테스트 인쇄 완료")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 테스트 인쇄 실패: ${e.message}")
+        }
+    }
+
     /**
      * 영수증 자동 인쇄
      */
@@ -138,7 +194,7 @@ class AutoPrintManager {
         commands.addAll(getLineFeed())
         
         // 상품명 (데이터에서 가져오거나 기본값 사용)
-        val productName = receiptData.productName ?: "CUBE COFFEE"
+        val productName = receiptData.productName.takeIf { !it.isNullOrBlank() } ?: "CUBE COFFEE"
         commands.addAll(createInfoLine("상품명", productName))
         commands.addAll(getLineFeed())
         
@@ -368,7 +424,8 @@ class AutoPrintManager {
     /**
      * 토큰 심볼 정규화 (주소를 심볼로 변환)
      */
-    private fun normalizeTokenSymbol(token: String): String {
+    private fun normalizeTokenSymbol(@Suppress("UNUSED_PARAMETER") token: String): String {
+        // 현재는 USDT만 지원하지만, 향후 다른 토큰 지원을 위해 매개변수 유지
         return "USDT"
     }
 
@@ -460,61 +517,237 @@ class AutoPrintManager {
     
     // === ESC/POS 명령어 헬퍼 메서드들 ===
     
+    /**
+     * 테스트 인쇄용 데이터 생성
+     */
+    private fun createTestPrintData(): ByteArray {
+        Log.d(TAG, "🧪 테스트 인쇄 데이터 생성 시작")
+        
+        val commands = mutableListOf<Byte>()
+        
+        // 프린터 초기화 및 다양한 인코딩 테스트
+        commands.addAll(getInitCommands())
+        
+        // 테스트 헤더
+        commands.addAll(getAlignCenter())
+        commands.addAll(getBoldLargeFont())
+        commands.addAll(convertStringToBytes("한국어 테스트"))
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        
+        commands.addAll(getNormalFont())
+        commands.addAll(getAlignLeft())
+        commands.addAll(createSeparatorLine())
+        
+        // 다양한 한국어 텍스트 테스트
+        val testTexts = listOf(
+            "가나다라마바사",
+            "한글 인쇄 테스트",
+            "안녕하세요",
+            "결제가 완료되었습니다",
+            "감사합니다",
+            "상품명: 아메리카노",
+            "금액: 4,500원",
+            "시간: 2025년 01월 01일"
+        )
+        
+        testTexts.forEach { text ->
+            commands.addAll(convertStringToBytes(text))
+            commands.addAll(getLineFeed())
+        }
+        
+        commands.addAll(createSeparatorLine())
+        commands.addAll(getLineFeed())
+        commands.addAll(getAlignCenter())
+        commands.addAll(convertStringToBytes("테스트 완료"))
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        commands.addAll(getLineFeed())
+        
+        // 용지 자르기
+        commands.addAll(getPaperCutCommand())
+        
+        val result = commands.toByteArray()
+        Log.d(TAG, "🧪 테스트 인쇄 데이터 생성 완료: ${result.size} bytes")
+        
+        return result
+    }
+
     private fun getInitCommands(): List<Byte> {
         val commands = mutableListOf<Byte>()
         
+        Log.d(TAG, "🔧 프린터 초기화 시작")
+        
         // 프린터 초기화
-        commands.addAll(listOf(0x1B.toByte(), 0x40.toByte())) // ESC @
+        val initCmd = listOf(0x1B.toByte(), 0x40.toByte()) // ESC @
+        commands.addAll(initCmd)
+        Log.d(TAG, "   초기화 명령어 (ESC @): ${initCmd.joinToString(" ") { String.format("%02X", it) }}")
         
-        // 한국어 코드페이지 설정 (여러 방식 시도)
-        commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x25.toByte())) // ESC t 37 (KS X 1001)
+        // 한국어 코드페이지 설정 시도 1: KS X 1001
+        val cp37 = listOf(0x1B.toByte(), 0x74.toByte(), 0x25.toByte()) // ESC t 37
+        commands.addAll(cp37)
+        Log.d(TAG, "   코드페이지 37 (KS X 1001): ${cp37.joinToString(" ") { String.format("%02X", it) }}")
         
-        // 추가: 다른 한국어 코드페이지도 시도
-        commands.addAll(listOf(0x1B.toByte(), 0x74.toByte(), 0x15.toByte())) // ESC t 21 (CP949)
+        // 한국어 코드페이지 설정 시도 2: CP949
+        val cp21 = listOf(0x1B.toByte(), 0x74.toByte(), 0x15.toByte()) // ESC t 21
+        commands.addAll(cp21)
+        Log.d(TAG, "   코드페이지 21 (CP949): ${cp21.joinToString(" ") { String.format("%02X", it) }}")
         
-        Log.d(TAG, "초기화 명령 생성: ${commands.size} bytes")
+        // 추가 시도 3: CP932 (일본어지만 한자 지원으로 한국어도 가능할 수 있음)
+        val cp932 = listOf(0x1B.toByte(), 0x74.toByte(), 0x01.toByte()) // ESC t 1
+        commands.addAll(cp932)
+        Log.d(TAG, "   코드페이지 1 (CP932): ${cp932.joinToString(" ") { String.format("%02X", it) }}")
+        
+        // 추가 시도 4: 국제 문자 세트 설정
+        val intlSet = listOf(0x1B.toByte(), 0x52.toByte(), 0x08.toByte()) // ESC R 8 (한국)
+        commands.addAll(intlSet)
+        Log.d(TAG, "   국제 문자 세트 (한국): ${intlSet.joinToString(" ") { String.format("%02X", it) }}")
+        
+        Log.d(TAG, "🔧 초기화 명령 생성 완료: ${commands.size} bytes")
+        logCommandBytes("전체 초기화", commands)
+        
         return commands
     }
     
     private fun convertStringToBytes(text: String): List<Byte> {
-        Log.d(TAG, "텍스트 변환 시작: '$text'")
+        Log.d(TAG, "🔤 텍스트 변환 시작: '$text'")
         
-        return try {
-            // EUC-KR 시도
+        // 다양한 인코딩 방식으로 시도하고 결과 비교
+        val encodingResults = mutableMapOf<String, ByteArray?>()
+        
+        // 1. EUC-KR 시도
+        try {
             val eucKrBytes = text.toByteArray(Charset.forName("EUC-KR"))
-            Log.d(TAG, "EUC-KR 변환 성공: '$text' -> ${eucKrBytes.size} bytes")
+            encodingResults["EUC-KR"] = eucKrBytes
+            Log.d(TAG, "   ✅ EUC-KR 변환 성공: '$text' -> ${eucKrBytes.size} bytes")
             logTextBytes("EUC-KR", text, eucKrBytes)
-            eucKrBytes.toList()
         } catch (e: Exception) {
-            Log.w(TAG, "EUC-KR 변환 실패, CP949 시도: ${e.message}")
-            try {
-                val cp949Bytes = text.toByteArray(Charset.forName("CP949"))
-                Log.d(TAG, "CP949 변환 성공: '$text' -> ${cp949Bytes.size} bytes")
-                logTextBytes("CP949", text, cp949Bytes)
-                cp949Bytes.toList()
-            } catch (e2: Exception) {
-                Log.w(TAG, "CP949도 실패, UTF-8 사용: ${e2.message}")
-                val utf8Bytes = text.toByteArray(Charsets.UTF_8)
-                logTextBytes("UTF-8", text, utf8Bytes)
-                utf8Bytes.toList()
-            }
+            encodingResults["EUC-KR"] = null
+            Log.w(TAG, "   ❌ EUC-KR 변환 실패: ${e.message}")
         }
+        
+        // 2. CP949 시도
+        try {
+            val cp949Bytes = text.toByteArray(Charset.forName("CP949"))
+            encodingResults["CP949"] = cp949Bytes
+            Log.d(TAG, "   ✅ CP949 변환 성공: '$text' -> ${cp949Bytes.size} bytes")
+            logTextBytes("CP949", text, cp949Bytes)
+        } catch (e: Exception) {
+            encodingResults["CP949"] = null
+            Log.w(TAG, "   ❌ CP949 변환 실패: ${e.message}")
+        }
+        
+        // 3. ISO-8859-1 시도 (라틴 문자)
+        try {
+            val isoBytes = text.toByteArray(Charset.forName("ISO-8859-1"))
+            encodingResults["ISO-8859-1"] = isoBytes
+            Log.d(TAG, "   ✅ ISO-8859-1 변환 성공: '$text' -> ${isoBytes.size} bytes")
+            logTextBytes("ISO-8859-1", text, isoBytes)
+        } catch (e: Exception) {
+            encodingResults["ISO-8859-1"] = null
+            Log.w(TAG, "   ❌ ISO-8859-1 변환 실패: ${e.message}")
+        }
+        
+        // 4. UTF-8 (폴백)
+        val utf8Bytes = text.toByteArray(Charsets.UTF_8)
+        encodingResults["UTF-8"] = utf8Bytes
+        Log.d(TAG, "   ✅ UTF-8 변환 (폴백): '$text' -> ${utf8Bytes.size} bytes")
+        logTextBytes("UTF-8", text, utf8Bytes)
+        
+        // 우선순위: EUC-KR > CP949 > ISO-8859-1 > UTF-8
+        val finalBytes = encodingResults["EUC-KR"] 
+            ?: encodingResults["CP949"] 
+            ?: encodingResults["ISO-8859-1"] 
+            ?: utf8Bytes
+            
+        val usedEncoding = when (finalBytes) {
+            encodingResults["EUC-KR"] -> "EUC-KR"
+            encodingResults["CP949"] -> "CP949"
+            encodingResults["ISO-8859-1"] -> "ISO-8859-1"
+            else -> "UTF-8"
+        }
+        
+        Log.d(TAG, "🎯 최종 선택된 인코딩: $usedEncoding (${finalBytes.size} bytes)")
+        
+        return finalBytes.toList()
     }
     
     /**
-     * 텍스트 바이트 변환 로깅
+     * 명령어 바이트 로깅
+     */
+    private fun logCommandBytes(description: String, commands: List<Byte>) {
+        val hexString = commands.take(30).joinToString(" ") { String.format("%02X", it) }
+        Log.d(TAG, "🔧 [$description] 명령어 바이트: $hexString${if (commands.size > 30) "... (총 ${commands.size} bytes)" else ""}")
+        
+        // 주요 ESC/POS 명령어 해석
+        var i = 0
+        while (i < commands.size - 1) {
+            val cmd = commands[i]
+            val next = commands.getOrNull(i + 1)
+            
+            when {
+                cmd == 0x1B.toByte() && next == 0x40.toByte() -> {
+                    Log.d(TAG, "   위치 $i: ESC @ (프린터 초기화)")
+                    i += 2
+                }
+                cmd == 0x1B.toByte() && next == 0x74.toByte() -> {
+                    val param = commands.getOrNull(i + 2)
+                    Log.d(TAG, "   위치 $i: ESC t $param (코드페이지 설정)")
+                    i += 3
+                }
+                cmd == 0x1B.toByte() && next == 0x52.toByte() -> {
+                    val param = commands.getOrNull(i + 2)
+                    Log.d(TAG, "   위치 $i: ESC R $param (국제 문자 세트)")
+                    i += 3
+                }
+                cmd == 0x1B.toByte() && next == 0x61.toByte() -> {
+                    val align = commands.getOrNull(i + 2)
+                    val alignText = when (align?.toInt()) {
+                        0 -> "왼쪽"
+                        1 -> "가운데"
+                        2 -> "오른쪽"
+                        else -> "알 수 없음"
+                    }
+                    Log.d(TAG, "   위치 $i: ESC a $align (정렬: $alignText)")
+                    i += 3
+                }
+                cmd == 0x1B.toByte() && next == 0x21.toByte() -> {
+                    val style = commands.getOrNull(i + 2)
+                    Log.d(TAG, "   위치 $i: ESC ! $style (폰트 스타일)")
+                    i += 3
+                }
+                cmd == 0x0A.toByte() -> {
+                    Log.d(TAG, "   위치 $i: LF (줄바꿈)")
+                    i += 1
+                }
+                else -> i += 1
+            }
+        }
+    }
+
+    /**
+     * 텍스트 바이트 변환 로깅 (개선된 버전)
      */
     private fun logTextBytes(encoding: String, text: String, bytes: ByteArray) {
         val hexString = bytes.take(20).joinToString(" ") { String.format("%02X", it) }
-        Log.d(TAG, "[$encoding] '$text' -> $hexString${if (bytes.size > 20) "..." else ""}")
+        Log.d(TAG, "      [$encoding] '$text' -> $hexString${if (bytes.size > 20) "..." else ""}")
+        
+        // 문자별 바이트 분석 (한글의 경우)
+        if (text.any { it.code > 127 }) {
+            Log.d(TAG, "      [$encoding] 다바이트 문자 포함 - 한글/특수문자 ${text.count { it.code > 127 }}개")
+        }
         
         // 역변환 테스트
         try {
             val decoded = String(bytes, Charset.forName(encoding))
             val isCorrect = decoded == text
-            Log.d(TAG, "[$encoding] 역변환 테스트: '$decoded' (${if (isCorrect) "성공" else "실패"})")
+            Log.d(TAG, "      [$encoding] 역변환 테스트: '$decoded' (${if (isCorrect) "✅ 성공" else "❌ 실패"})")
+            
+            if (!isCorrect) {
+                Log.w(TAG, "      [$encoding] 원본과 다름 - 인코딩 문제 가능성!")
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "[$encoding] 역변환 실패: ${e.message}")
+            Log.w(TAG, "      [$encoding] 역변환 실패: ${e.message}")
         }
     }
     

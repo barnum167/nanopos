@@ -112,6 +112,12 @@ class MainActivity : AppCompatActivity() {
         updatePrinterStatus(false, "프린터 초기화 중...")
         tvStatusMessage.text = "시스템 준비 중..."
         
+        // 프린터 상태 터치 이벤트 추가 (10번 터치시 테스트 인쇄)
+        tvPrinterStatus.setOnClickListener {
+            Log.d(TAG, "프린터 상태 영역 터치됨")
+            autoPrintManager?.onPrinterStatusTouch()
+        }
+        
         Log.d(TAG, "UI 요소 초기화 완료")
     }
     
