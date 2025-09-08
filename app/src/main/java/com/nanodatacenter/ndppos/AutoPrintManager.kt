@@ -31,6 +31,7 @@ class AutoPrintManager {
     }
     
     private val printerHelper = PrinterHelper()
+    private val printerHelperEnglish = PrinterHelperEnglish()  // English version helper
     
     /**
      * 프린터 상태 터치 이벤트 처리 (10번 터치시 테스트 인쇄)
@@ -60,63 +61,76 @@ class AutoPrintManager {
     }
     
     /**
-     * 테스트용 한국어 영수증 인쇄
+     * Test receipt printing (English version)
      */
     private fun printTestReceipt() {
         Log.i(TAG, "═══════════════════════════════════════════")
-        Log.i(TAG, "🧪 테스트 인쇄 시작 - 한국어 인코딩 검증")
+        Log.i(TAG, "🧪 Test Printing Started - English Receipt")
         Log.i(TAG, "═══════════════════════════════════════════")
         
         try {
-            val testData = createTestPrintData()
+            // Create test receipt data
+            val testReceiptData = ReceiptData(
+                printId = "TEST-${System.currentTimeMillis()}",
+                transactionHash = "0x1234567890abcdef1234567890abcdef12345678",
+                amount = "1",
+                token = "USDT",
+                fromAddress = "0xabc123def456789012345678901234567890abcd",
+                toAddress = "0xdef456789012345678901234567890abcdef1234",
+                timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()),
+                productName = "CUBE COFFEE"
+            )
             
-            // 프린터로 전송
+            // Generate English receipt
+            val testData = printerHelperEnglish.createTransactionReceipt(testReceiptData)
+            
+            // Send to printer
             printer.setBuffer(testData)
             printer.print()
             
-            // 인쇄 완료 대기
+            // Wait for printing completion
             Thread.sleep(3000)
             
-            Log.i(TAG, "✅ 테스트 인쇄 완료")
+            Log.i(TAG, "✅ Test printing completed")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 테스트 인쇄 실패: ${e.message}")
+            Log.e(TAG, "❌ Test printing failed: ${e.message}")
         }
     }
 
     /**
-     * 영수증 자동 인쇄
+     * Receipt auto printing (English version)
      */
     fun printReceipt(receiptData: ReceiptData): Boolean {
         return try {
             Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            Log.i(TAG, "자동 영수증 인쇄 시작")
-            Log.i(TAG, "인쇄 ID: ${receiptData.printId}")
-            Log.i(TAG, "거래 해시: ${receiptData.transactionHash}")
+            Log.i(TAG, "Auto Receipt Printing Started (English)")
+            Log.i(TAG, "Print ID: ${receiptData.printId}")
+            Log.i(TAG, "Transaction Hash: ${receiptData.transactionHash}")
             val normalizedToken = normalizeTokenSymbol(receiptData.token)
-            Log.i(TAG, "금액: ${receiptData.amount} ${receiptData.token} -> $normalizedToken")
+            Log.i(TAG, "Amount: ${receiptData.amount} ${receiptData.token} -> $normalizedToken")
             
-            // 한국어 로케일 강제 설정
+            // Set English locale
             val originalLocale = Locale.getDefault()
-            Locale.setDefault(Locale.KOREA)
-            Log.i(TAG, "로케일 설정: ${originalLocale} -> ${Locale.getDefault()}")
+            Locale.setDefault(Locale.US)
+            Log.i(TAG, "Locale setting: ${originalLocale} -> ${Locale.getDefault()}")
             
             Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             
-            // 영수증 데이터 생성
-            val printData = createReceiptPrintData(receiptData)
+            // Generate receipt data using English helper
+            val printData = printerHelperEnglish.createTransactionReceipt(receiptData)
             
-            // 프린터로 전송
+            // Send to printer
             printer.setBuffer(printData)
             printer.print()
             
-            // 인쇄 완료 대기
+            // Wait for printing completion
             Thread.sleep(3000)
             
-            Log.i(TAG, "✅ 자동 영수증 인쇄 완료 - ID: ${receiptData.printId}")
+            Log.i(TAG, "✅ Auto receipt printing completed - ID: ${receiptData.printId}")
             true
             
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 자동 영수증 인쇄 실패 - ID: ${receiptData.printId}, 오류: ${e.message}")
+            Log.e(TAG, "❌ Auto receipt printing failed - ID: ${receiptData.printId}, Error: ${e.message}")
             false
         }
     }

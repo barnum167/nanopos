@@ -376,6 +376,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    
+
     
     /**
      * 자동 인쇄 시스템 시작 (필요시 사용)

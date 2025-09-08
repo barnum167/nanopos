@@ -1,0 +1,181 @@
+package com.nanodatacenter.ndppos
+
+import android.util.Log
+import com.elixirpay.elixirpaycat.SerialPrinter
+import kotlinx.coroutines.*
+
+/**
+ * 통합 영수증 관리 클래스
+ * PAYMENT INFORMATION과 BLOCKCHAIN VERIFICATION 정보를 합쳐서 출력하는 기능을 제공
+ */
+class CombinedReceiptManager(
+    private val printer: SerialPrinter,
+    private val printerHelper: PrinterHelper
+) {
+    
+    companion object {
+        private const val TAG = "CombinedReceiptManager"
+    }
+    
+    /**
+     * 통합 영수증 출력 (비동기)
+     */
+    suspend fun printCombinedReceipt(receiptData: ReceiptData): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.i(TAG, "통합 영수증 출력 시작: ${receiptData.printId}")
+                
+                val printData = printerHelper.createCombinedReceiptData(receiptData)
+                printer.setBuffer(printData)
+                printer.print()
+                
+                Log.i(TAG, "통합 영수증 출력 완료: ${receiptData.printId}")
+                true
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "통합 영수증 출력 실패: ${e.message}")
+                false
+            }
+        }
+    }
+    
+    /**
+     * 여러 영수증 연속 출력
+     */
+    suspend fun printMultipleReceipts(receiptDataList: List<ReceiptData>): Int {
+        var successCount = 0
+        
+        for ((index, receiptData) in receiptDataList.withIndex()) {
+            Log.d(TAG, "영수증 ${index + 1}/${receiptDataList.size} 출력 중...")
+            
+            if (printCombinedReceipt(receiptData)) {
+                successCount++
+                // 연속 출력 시 잠시 대기 (프린터 안정성)
+                delay(1000)
+            } else {
+                Log.w(TAG, "영수증 ${index + 1} 출력 실패")
+            }
+        }
+        
+        Log.i(TAG, "연속 출력 완료: ${successCount}/${receiptDataList.size}")
+        return successCount
+    }
+    
+    /**
+     * 테스트용 샘플 영수증 데이터 생성
+     */
+    fun createSampleReceiptData(): ReceiptData {
+        return ReceiptData(
+            printId = "NDC-${System.currentTimeMillis()}",
+            transactionHash = "0x1a2b3c4d5e6f7890abcdef1234567890abcdef12",
+            amount = "15.75",
+            token = "USDT",
+            fromAddress = "0xfedcba0987654321fedcba0987654321fedcba09",
+            toAddress = "0x1234567890abcdef1234567890abcdef12345678",
+            timestamp = (System.currentTimeMillis() / 1000).toString(),
+            productName = "CUBE COFFEE"
+        )
+    }
+    
+    /**
+     * 다양한 샘플 데이터 생성 (테스트용)
+     */
+    fun createVariousSampleData(): List<ReceiptData> {
+        val currentTime = System.currentTimeMillis() / 1000
+        
+        return listOf(
+            ReceiptData(
+                printId = "NDC-001",
+                transactionHash = "0x1111111111111111111111111111111111111111",
+                amount = "10.50",
+                token = "USDT",
+                fromAddress = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                toAddress = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                timestamp = currentTime.toString(),
+                productName = "아메리카노"
+            ),
+            ReceiptData(
+                printId = "NDC-002",
+                transactionHash = "0x2222222222222222222222222222222222222222",
+                amount = "12.00",
+                token = "USDC",
+                fromAddress = "0xcccccccccccccccccccccccccccccccccccccccc",
+                toAddress = "0xdddddddddddddddddddddddddddddddddddddddd",
+                timestamp = (currentTime + 60).toString(),
+                productName = "카페라떼"
+            ),
+            ReceiptData(
+                printId = "NDC-003",
+                transactionHash = "0x3333333333333333333333333333333333333333",
+                amount = "8.75",
+                token = "USDT",
+                fromAddress = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                toAddress = "0xffffffffffffffffffffffffffffffffffffffff",
+                timestamp = (currentTime + 120).toString(),
+                productName = "카푸치노"
+            )
+        )
+    }
+    
+    /**
+     * 영수증 데이터 유효성 검사
+     */
+    fun validateReceiptData(receiptData: ReceiptData): ValidationResult {
+        val errors = mutableListOf<String>()
+        
+        // 필수 필드 검사
+        if (receiptData.printId.isBlank()) {
+            errors.add("출력 ID가 비어있습니다")
+        }
+        
+        if (receiptData.transactionHash.isBlank()) {
+            errors.add("트랜잭션 해시가 비어있습니다")
+        }
+        
+        if (receiptData.amount.isBlank()) {
+            errors.add("금액이 비어있습니다")
+        }
+        
+        if (receiptData.fromAddress.isBlank()) {
+            errors.add("송신 주소가 비어있습니다")
+        }
+        
+        if (receiptData.toAddress.isBlank()) {
+            errors.add("수신 주소가 비어있습니다")
+        }
+        
+        // 트랜잭션 해시 형식 검사 (0x로 시작하는 16진수)
+        if (!receiptData.transactionHash.matches(Regex("^0x[a-fA-F0-9]{40}$"))) {
+            errors.add("트랜잭션 해시 형식이 올바르지 않습니다")
+        }
+        
+        // 주소 형식 검사 (0x로 시작하는 16진수)
+        if (!receiptData.fromAddress.matches(Regex("^0x[a-fA-F0-9]{40}$"))) {
+            errors.add("송신 주소 형식이 올바르지 않습니다")
+        }
+        
+        if (!receiptData.toAddress.matches(Regex("^0x[a-fA-F0-9]{40}$"))) {
+            errors.add("수신 주소 형식이 올바르지 않습니다")
+        }
+        
+        // 금액 형식 검사 (숫자)
+        try {
+            receiptData.amount.toDouble()
+        } catch (e: NumberFormatException) {
+            errors.add("금액 형식이 올바르지 않습니다")
+        }
+        
+        return ValidationResult(
+            isValid = errors.isEmpty(),
+            errors = errors
+        )
+    }
+    
+    /**
+     * 유효성 검사 결과 클래스
+     */
+    data class ValidationResult(
+        val isValid: Boolean,
+        val errors: List<String>
+    )
+}
