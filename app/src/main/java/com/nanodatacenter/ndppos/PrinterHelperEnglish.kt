@@ -86,6 +86,7 @@ class PrinterHelperEnglish {
         val commands = mutableListOf<Byte>()
         
         // Section title
+        commands.addAll(createDashedLine())
         commands.addAll(getAlignCenter())
         commands.addAll(getBoldFont())
         commands.addAll(convertStringToBytes("PAYMENT INFORMATION"))
@@ -211,8 +212,6 @@ class PrinterHelperEnglish {
         commands.addAll(getLineFeed())
         commands.addAll(convertStringToBytes("We Appreciate Your Trust"))
         commands.addAll(getLineFeed())
-        commands.addAll(convertStringToBytes("Please Visit Us Again"))
-        commands.addAll(getLineFeed())
         commands.addAll(getLineFeed())
         
 //        // Customer service info
@@ -248,7 +247,7 @@ class PrinterHelperEnglish {
         commands.addAll(convertStringToBytes("KEEP THIS RECEIPT"))
         commands.addAll(getLineFeed())
         commands.addAll(getNormalFont())
-        commands.addAll(convertStringToBytes("For Your Records"))
+        commands.addAll(convertStringToBytes("A Memento of the Day We First Met"))
         commands.addAll(getLineFeed())
         commands.addAll(convertStringToBytes("********************************"))
         commands.addAll(getLineFeed())
