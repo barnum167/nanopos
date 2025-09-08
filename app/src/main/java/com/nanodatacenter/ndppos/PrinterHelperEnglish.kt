@@ -100,9 +100,10 @@ class PrinterHelperEnglish {
         // Product name (품명)
         commands.addAll(createDetailLine("Item (Description)", "CUBE COFFEE * 1"))
         
-        // Amount (highlighted)
+        // Amount (highlighted) - using formatAmount for Wei conversion
         commands.addAll(getBoldFont())
-        commands.addAll(createDetailLine("Amount", "${receiptData.amount} USDT"))
+        val formattedAmount = formatAmount(receiptData.amount, receiptData.token)
+        commands.addAll(createDetailLine("Amount", formattedAmount))
         commands.addAll(getNormalFont())
         //commands.addAll(getLineFeed())
         
@@ -330,4 +331,79 @@ class PrinterHelperEnglish {
     
     // Extension function for string repetition
     private operator fun String.times(count: Int): String = this.repeat(count)
+    
+    /**
+     * 토큰 심볼 정규화 (주소를 심볼로 변환)
+     */
+    private fun normalizeTokenSymbol(@Suppress("UNUSED_PARAMETER") token: String): String {
+        // 현재는 USDT만 지원하지만, 향후 다른 토큰 지원을 위해 매개변수 유지
+        return "USDT"
+    }
+
+    /**
+     * 결제 금액 포맷팅 (Wei 단위를 적절한 토큰 단위로 변환)
+     */
+    private fun formatAmount(amount: String, token: String): String {
+        return try {
+            val normalizedToken = normalizeTokenSymbol(token)
+            Log.d(TAG, "금액 포맷팅 시작: amount=$amount, token=$token -> $normalizedToken")
+            
+            // Wei 단위를 토큰 단위로 변환 (18 decimals 기준)
+            val weiAmount = when {
+                amount.startsWith("0x", ignoreCase = true) -> {
+                    // 16진수인 경우
+                    java.math.BigInteger(amount.substring(2), 16)
+                }
+                amount.length > 15 && amount.all { it.isDigit() } -> {
+                    // 매우 큰 숫자인 경우 (Wei 단위로 간주)
+                    java.math.BigInteger(amount)
+                }
+                else -> {
+                    // 일반 숫자인 경우도 Wei로 간주하여 변환
+                    val numericAmount = amount.toLongOrNull() ?: 0L
+                    java.math.BigInteger.valueOf(numericAmount)
+                }
+            }
+            
+            // Wei를 토큰 단위로 변환 (1 token = 10^18 wei)
+            val divisor = java.math.BigDecimal("1000000000000000000") // 10^18
+            val tokenAmount = weiAmount.toBigDecimal().divide(divisor)
+            
+            Log.d(TAG, "Wei -> 토큰 변환: $amount Wei -> $tokenAmount $normalizedToken")
+            
+            // 소수점 처리: 매우 작은 값도 적절히 표시
+            val formatted = if (tokenAmount.compareTo(java.math.BigDecimal.ZERO) == 0) {
+                "0"
+            } else if (tokenAmount.scale() <= 0 || tokenAmount.remainder(java.math.BigDecimal.ONE).compareTo(java.math.BigDecimal.ZERO) == 0) {
+                tokenAmount.toBigInteger().toString()
+            } else {
+                // 매우 작은 값들을 위해 더 많은 소수점 자리 지원
+                val scaledAmount = if (tokenAmount.compareTo(java.math.BigDecimal("0.000001")) < 0) {
+                    // 0.000001보다 작은 경우 최대 18자리까지 표시 (과학적 표기법 회피)
+                    tokenAmount.setScale(18, java.math.RoundingMode.HALF_UP)
+                        .stripTrailingZeros()
+                } else {
+                    // 일반적인 경우 최대 6자리까지 표시
+                    tokenAmount.setScale(6, java.math.RoundingMode.HALF_UP)
+                        .stripTrailingZeros()
+                }
+                scaledAmount.toPlainString()
+            }
+            
+            val result = "$formatted $normalizedToken"
+            Log.d(TAG, "최종 포맷: $result")
+            result
+            
+        } catch (e: Exception) {
+            Log.w(TAG, "금액 포맷팅 실패: $amount, 오류: ${e.message}")
+            val normalizedToken = normalizeTokenSymbol(token)
+            // 실패 시 원본을 축약하여 표시
+            val displayAmount = if (amount.length > 20) {
+                "${amount.take(8)}...${amount.takeLast(4)}"
+            } else {
+                amount
+            }
+            "$displayAmount $normalizedToken"
+        }
+    }
 }

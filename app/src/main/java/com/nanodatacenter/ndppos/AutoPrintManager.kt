@@ -69,29 +69,44 @@ class AutoPrintManager {
         Log.i(TAG, "═══════════════════════════════════════════")
         
         try {
-            // Create test receipt data
-            val testReceiptData = ReceiptData(
-                printId = "TEST-${System.currentTimeMillis()}",
-                transactionHash = "0x1234567890abcdef1234567890abcdef12345678",
-                amount = "1",
-                token = "USDT",
-                fromAddress = "0xabc123def456789012345678901234567890abcd",
-                toAddress = "0xdef456789012345678901234567890abcdef1234",
-                timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()),
-                productName = "CUBE COFFEE"
+            // Test with multiple amounts including very small wei values
+            val testAmounts = listOf(
+                "1", // 1 wei (very small amount)
+                "1000", // 1000 wei (still very small)
+                "1000000000000000000", // 1 USDT in Wei (1 * 10^18)
+                "4500000000000000000" // 4.5 USDT in Wei (4.5 * 10^18)
             )
             
-            // Generate English receipt
-            val testData = printerHelperEnglish.createTransactionReceipt(testReceiptData)
+            testAmounts.forEachIndexed { index, amount ->
+                Log.i(TAG, "테스트 ${index + 1}/4 - Wei 금액: $amount")
+                
+                val testReceiptData = ReceiptData(
+                    printId = "TEST-${System.currentTimeMillis()}-$index",
+                    transactionHash = "0x1234567890abcdef1234567890abcdef12345678",
+                    amount = amount,
+                    token = "USDT",
+                    fromAddress = "0xabc123def456789012345678901234567890abcd",
+                    toAddress = "0xdef456789012345678901234567890abcdef1234",
+                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()),
+                    productName = "CUBE COFFEE"
+                )
+                
+                // Log the formatted amount for verification
+                val formattedAmount = formatAmount(testReceiptData.amount, testReceiptData.token)
+                Log.i(TAG, "Wei 금액 변환 결과: $amount wei -> $formattedAmount")
+                
+                // Generate English receipt
+                val testData = printerHelperEnglish.createTransactionReceipt(testReceiptData)
+                
+                // Send to printer
+                printer.setBuffer(testData)
+                printer.print()
+                
+                // Wait between prints
+                Thread.sleep(2000)
+            }
             
-            // Send to printer
-            printer.setBuffer(testData)
-            printer.print()
-            
-            // Wait for printing completion
-            Thread.sleep(3000)
-            
-            Log.i(TAG, "✅ Test printing completed")
+            Log.i(TAG, "✅ All test printings completed")
         } catch (e: Exception) {
             Log.e(TAG, "❌ Test printing failed: ${e.message}")
         }
@@ -474,16 +489,23 @@ class AutoPrintManager {
             
             Log.d(TAG, "Wei -> 토큰 변환: $amount Wei -> $tokenAmount $normalizedToken")
             
-            // 소수점 처리: 0이면 정수로, 아니면 최대 6자리까지 표시
+            // 소수점 처리: 매우 작은 값도 적절히 표시
             val formatted = if (tokenAmount.compareTo(java.math.BigDecimal.ZERO) == 0) {
                 "0"
             } else if (tokenAmount.scale() <= 0 || tokenAmount.remainder(java.math.BigDecimal.ONE).compareTo(java.math.BigDecimal.ZERO) == 0) {
                 tokenAmount.toBigInteger().toString()
             } else {
-                // 소수점이 있는 경우 최대 6자리까지, 끝자리 0 제거
-                tokenAmount.setScale(6, java.math.RoundingMode.HALF_UP)
-                    .stripTrailingZeros()
-                    .toPlainString()
+                // 매우 작은 값들을 위해 더 많은 소수점 자리 지원
+                val scaledAmount = if (tokenAmount.compareTo(java.math.BigDecimal("0.000001")) < 0) {
+                    // 0.000001보다 작은 경우 최대 18자리까지 표시 (과학적 표기법 회피)
+                    tokenAmount.setScale(18, java.math.RoundingMode.HALF_UP)
+                        .stripTrailingZeros()
+                } else {
+                    // 일반적인 경우 최대 6자리까지 표시
+                    tokenAmount.setScale(6, java.math.RoundingMode.HALF_UP)
+                        .stripTrailingZeros()
+                }
+                scaledAmount.toPlainString()
             }
             
             val result = "$formatted $normalizedToken"
