@@ -37,7 +37,7 @@ class PrinterHelperEnglish {
         commands.addAll(createPaymentSection(receiptData))
         
         // ========== BLOCKCHAIN INFO SECTION ==========
-        commands.addAll(createBlockchainSection(receiptData))
+        // commands.addAll(createBlockchainSection(receiptData)) // 주석처리: 블록체인 섹션 비활성화
         
         // ========== FOOTER SECTION ==========
         commands.addAll(createThankYouFooter())
@@ -96,16 +96,19 @@ class PrinterHelperEnglish {
         // Payment details
         commands.addAll(getAlignLeft())
         
+        // Product name (품명)
+        commands.addAll(createDetailLine("Item (Description)", "CUBE COFFEE * 1"))
+        
         // Amount (highlighted)
         commands.addAll(getBoldFont())
         commands.addAll(createDetailLine("Amount", "${receiptData.amount} ${receiptData.token}"))
         commands.addAll(getNormalFont())
-        commands.addAll(getLineFeed())
+        //commands.addAll(getLineFeed())
         
         // Currency/Token
-        commands.addAll(createDetailLine("Currency", receiptData.token))
+        //commands.addAll(createDetailLine("Currency", receiptData.token))
 //        commands.addAll(createDetailLine("Network", "MAINNET"))
-        commands.addAll(getLineFeed())
+        //commands.addAll(getLineFeed())
         
         // From address (shortened)
         val shortFrom = "${receiptData.fromAddress.take(6)}...${receiptData.fromAddress.takeLast(4)}"
@@ -114,15 +117,28 @@ class PrinterHelperEnglish {
         // To address (shortened)
         val shortTo = "${receiptData.toAddress.take(6)}...${receiptData.toAddress.takeLast(4)}"
         commands.addAll(createDetailLine("To", shortTo))
-        
+
+        commands.addAll(convertStringToBytes("Transaction Hash:"))
+        commands.addAll(getLineFeed())
+
+        val hashPart1 = receiptData.transactionHash.take(21)
+        val hashPart2 = receiptData.transactionHash.drop(21)
+
+        commands.addAll(convertStringToBytes("  $hashPart1"))
+        commands.addAll(getLineFeed())
+        commands.addAll(convertStringToBytes("  $hashPart2"))
+        commands.addAll(getLineFeed())
+
         commands.addAll(createDashedLine())
         
         return commands
     }
     
-    /**
+    /*
      * Create blockchain information section
+     * 주석처리: 블록체인 섹션 비활성화
      */
+    /*
     private fun createBlockchainSection(receiptData: ReceiptData): List<Byte> {
         val commands = mutableListOf<Byte>()
         
@@ -158,6 +174,7 @@ class PrinterHelperEnglish {
         
         return commands
     }
+    */
     
     /**
      * Create thank you footer with improved design
