@@ -119,15 +119,7 @@ class PrinterHelperEnglish {
         val shortTo = "${receiptData.toAddress.take(6)}...${receiptData.toAddress.takeLast(4)}"
         commands.addAll(createDetailLine("To", shortTo))
 
-        commands.addAll(convertStringToBytes("Transaction Hash:"))
-        commands.addAll(getLineFeed())
-
-        val hashPart1 = receiptData.transactionHash.take(21)
-        val hashPart2 = receiptData.transactionHash.drop(21)
-
-        commands.addAll(convertStringToBytes("  $hashPart1"))
-        commands.addAll(getLineFeed())
-        commands.addAll(convertStringToBytes("  $hashPart2"))
+        commands.addAll(convertStringToBytes("Transaction Hash: ${receiptData.transactionHash}"))
         commands.addAll(getLineFeed())
 
         commands.addAll(createDashedLine())
