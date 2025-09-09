@@ -168,20 +168,24 @@ class MainActivity : AppCompatActivity() {
         
         runOnUiThread {
             // 기존 타이머가 있다면 취소
-            imageResetRunnable?.let { imageHandler.removeCallbacks(it) }
+            imageResetRunnable?.let { 
+                imageHandler.removeCallbacks(it)
+                Log.d(TAG, "기존 이미지 리셋 타이머 취소됨")
+            }
             
             // thankyou.png로 변경
             ivPaymentQr.setImageResource(R.drawable.thankyou)
             isShowingQr = false
             Log.d(TAG, "thankyou.png로 변경됨")
             
-            // 3초 후 item.png로 자동 변경
+            // 3초 후 item.png로 자동 변경 (확실한 대기 시간 보장)
             imageResetRunnable = Runnable {
+                Log.i(TAG, "3초 대기 완료 - item.png로 자동 변경 시작")
                 resetToItemImage()
             }
-            imageHandler.postDelayed(imageResetRunnable!!, 3000)
+            imageHandler.postDelayed(imageResetRunnable!!, 3000) // 3초 = 3000ms
             
-            Log.i(TAG, "3초 후 item.png로 자동 변경 예약됨")
+            Log.i(TAG, "✅ 3초(3000ms) 후 item.png로 자동 변경 예약됨")
         }
     }
     
@@ -279,7 +283,7 @@ class MainActivity : AppCompatActivity() {
             isPrinterReady = true
             
             withContext(Dispatchers.Main) {
-                updatePrinterStatus(true, "영수증 출력 가능")
+                updatePrinterStatus(true, "Receipt available")
                 tvStatusMessage.text = "시스템 준비 완료"
             }
             
@@ -337,7 +341,8 @@ class MainActivity : AppCompatActivity() {
      * 종합 상태 메시지 업데이트
      */
     private fun updateOverallStatus() {
-        val overallStatus = "프린터: $printerStatusText | 네트워크: $networkStatus"
+        //val overallStatus = "프린터: $printerStatusText | 네트워크: $networkStatus"
+        val overallStatus = "Network: $networkStatus"
         tvStatusMessage.text = overallStatus
     }
     
@@ -378,7 +383,7 @@ class MainActivity : AppCompatActivity() {
                 isPrinterReady = true
                 
                 withContext(Dispatchers.Main) {
-                    updatePrinterStatus(true, "영수증 출력 가능")
+                    updatePrinterStatus(true, "Receipt available")
                 }
                 
             } catch (e: Exception) {
@@ -481,7 +486,7 @@ class MainActivity : AppCompatActivity() {
     fun startAutoPrintSystem() {
         try {
             serverPollingService?.startPolling(autoPrintManager!!)
-            updateNetworkStatus("폴링 활성화")
+            updateNetworkStatus("enabled")
             Log.i(TAG, "자동 인쇄 시스템 시작")
         } catch (e: Exception) {
             updateNetworkStatus("시작 실패")

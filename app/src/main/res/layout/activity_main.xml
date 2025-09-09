@@ -16,14 +16,13 @@
         android:gravity="center"
         android:padding="20dp">
 
-        <!-- 타이틀 -->
-        <TextView
+        <!-- 타이틀 로고 -->
+        <ImageView
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="STABLE CUBE"
-            android:textColor="#ffffff"
-            android:textSize="28sp"
-            android:textStyle="bold"
+            android:layout_height="50dp"
+            android:src="@drawable/stablecubelogo"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
             android:layout_marginBottom="30dp" />
 
         <!-- QR 코드 이미지 -->
@@ -37,8 +36,8 @@
 
             <ImageView
                 android:id="@+id/iv_payment_qr"
-                android:layout_width="280dp"
-                android:layout_height="280dp"
+                android:layout_width="340dp"
+                android:layout_height="360dp"
                 android:scaleType="fitCenter"
                 android:background="@android:color/transparent" />
 
@@ -52,16 +51,7 @@
             android:background="@drawable/rounded_background"
             android:backgroundTint="#2a2a2a"
             android:padding="20dp"
-            android:layout_marginBottom="20dp">
-
-            <!-- 프린터 상태 타이틀 -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="프린터 상태"
-                android:textColor="#808080"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="0dp">
 
             <!-- 프린터 상태 표시 -->
             <TextView
@@ -82,10 +72,12 @@
             android:id="@+id/tv_status_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:layout_marginLeft="0dp"
             android:text="시스템 준비 중..."
             android:textColor="#808080"
             android:textSize="16sp"
-            android:layout_marginBottom="10dp" />
+            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -100,16 +92,5 @@
         android:text="2024-01-01 12:00:00"
         android:textColor="#606060"
         android:textSize="14sp" />
-
-    <!-- 버전 정보 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true"
-        android:layout_margin="20dp"
-        android:text="v2.0 | Port: /dev/ttyS4"
-        android:textColor="#404040"
-        android:textSize="12sp" />
 
 </RelativeLayout>
