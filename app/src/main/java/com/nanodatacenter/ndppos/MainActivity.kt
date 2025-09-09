@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     // 상태 관리
     private var networkStatus = "연결 확인 중"
     private var printerStatusText = "초기화 중"
+    private var isShowingQr = false // QR 코드 표시 상태
     
     // 프린터 관련
     private var printer: SerialPrinter? = null
@@ -52,6 +53,10 @@ class MainActivity : AppCompatActivity() {
     // 시간 업데이트 핸들러  
     private val timeHandler = Handler(Looper.getMainLooper())
     private var timeUpdateRunnable: Runnable? = null
+    
+    // 이미지 자동 변경 핸들러
+    private val imageHandler = Handler(Looper.getMainLooper())
+    private var imageResetRunnable: Runnable? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,8 +111,14 @@ class MainActivity : AppCompatActivity() {
         tvStatusMessage = findViewById(R.id.tv_status_message)
         tvDateTime = findViewById(R.id.tv_date_time)
         
-        // QR 이미지 설정
-        ivPaymentQr.setImageResource(R.drawable.payment_qr)
+        // 초기에는 item.png를 표시
+        ivPaymentQr.setImageResource(R.drawable.item)
+        isShowingQr = false
+        
+        // QR 이미지 터치 이벤트 추가
+        ivPaymentQr.setOnClickListener {
+            toggleQrDisplay()
+        }
         
         // 초기 상태 설정
         updatePrinterStatus(false, "프린터 초기화 중...")
@@ -126,7 +137,84 @@ class MainActivity : AppCompatActivity() {
             true
         }
         
+        // 감사 이미지 테스트 설정 (상태 메시지 더블 터치)
+        setupThankYouImageTest()
+        
         Log.d(TAG, "UI 요소 초기화 완료")
+    }
+    
+    /**
+     * QR 코드 표시 토글
+     */
+    private fun toggleQrDisplay() {
+        if (isShowingQr) {
+            // QR 코드에서 item.png로 변경
+            ivPaymentQr.setImageResource(R.drawable.item)
+            isShowingQr = false
+            Log.d(TAG, "item.png로 변경됨")
+        } else {
+            // item.png에서 QR 코드로 변경
+            ivPaymentQr.setImageResource(R.drawable.payment_qr)
+            isShowingQr = true
+            Log.d(TAG, "QR 코드로 변경됨")
+        }
+    }
+    
+    /**
+     * 결제 완료 시 감사 이미지로 변경 (3초 후 자동으로 item.png로 돌아감)
+     */
+    fun showThankYouImage() {
+        Log.i(TAG, "결제 완료 - 감사 이미지 표시 시작")
+        
+        runOnUiThread {
+            // 기존 타이머가 있다면 취소
+            imageResetRunnable?.let { imageHandler.removeCallbacks(it) }
+            
+            // thankyou.png로 변경
+            ivPaymentQr.setImageResource(R.drawable.thankyou)
+            isShowingQr = false
+            Log.d(TAG, "thankyou.png로 변경됨")
+            
+            // 3초 후 item.png로 자동 변경
+            imageResetRunnable = Runnable {
+                resetToItemImage()
+            }
+            imageHandler.postDelayed(imageResetRunnable!!, 3000)
+            
+            Log.i(TAG, "3초 후 item.png로 자동 변경 예약됨")
+        }
+    }
+    
+    /**
+     * item.png로 리셋
+     */
+    private fun resetToItemImage() {
+        Log.i(TAG, "자동으로 item.png로 변경")
+        
+        runOnUiThread {
+            ivPaymentQr.setImageResource(R.drawable.item)
+            isShowingQr = false
+            Log.d(TAG, "자동으로 item.png로 변경 완료")
+        }
+    }
+    
+    /**
+     * 감사 이미지 표시 테스트 (디버깅용)
+     * 상태 메시지를 더블 터치하면 테스트 실행
+     */
+    private fun setupThankYouImageTest() {
+        var lastClickTime = 0L
+        val doubleClickInterval = 500L // 500ms 내 더블 클릭
+        
+        tvStatusMessage.setOnClickListener {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastClickTime < doubleClickInterval) {
+                // 더블 클릭 감지
+                Log.i(TAG, "🧪 감사 이미지 테스트 실행")
+                showThankYouImage()
+            }
+            lastClickTime = currentTime
+        }
     }
     
     /**
@@ -140,6 +228,9 @@ class MainActivity : AppCompatActivity() {
             // 자동 인쇄 시스템 초기화 (필요시)
             serverPollingService = ServerPollingServiceV2()
             autoPrintManager = AutoPrintManager()
+            
+            // AutoPrintManager에 MainActivity 참조 설정 (결제 완료 콜백용)
+            autoPrintManager?.setMainActivity(this)
             
             Log.d(TAG, "컴포넌트 초기화 완료")
         } catch (e: Exception) {
@@ -362,6 +453,10 @@ class MainActivity : AppCompatActivity() {
                     printer?.setBuffer(printData)
                     printer?.print()
                     
+                    // 테스트 영수증 출력 시작 즉시 감사 이미지 표시 (UI 스레드 전환 전에 실행)
+                    showThankYouImage()
+                    Log.i(TAG, "🎉 테스트 영수증 출력 시작 - 즉시 감사 이미지 표시")
+                    
                     withContext(Dispatchers.Main) {
                         tvStatusMessage.text = "테스트 영수증 출력 완료"
                     }
@@ -547,6 +642,7 @@ class MainActivity : AppCompatActivity() {
         // 핸들러 정리
         statusCheckRunnable?.let { statusHandler.removeCallbacks(it) }
         timeUpdateRunnable?.let { timeHandler.removeCallbacks(it) }
+        imageResetRunnable?.let { imageHandler.removeCallbacks(it) }
         
         // 자동 인쇄 시스템 중지
         serverPollingService?.let {

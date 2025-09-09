@@ -23,6 +23,17 @@ class AutoPrintManager {
         private const val TEST_TOUCH_RESET_TIME = 3000L // 3초 후 카운트 리셋
     }
     
+    // MainActivity 참조 (결제 완료 콜백용)
+    private var mainActivity: MainActivity? = null
+    
+    /**
+     * MainActivity 참조 설정
+     */
+    fun setMainActivity(activity: MainActivity) {
+        mainActivity = activity
+        Log.d(TAG, "MainActivity 참조 설정됨")
+    }
+    
     private val printer: SerialPrinter by lazy {
         SerialPrinter.Builder()
             .tty(PRINTER_PORT)
@@ -69,44 +80,39 @@ class AutoPrintManager {
         Log.i(TAG, "═══════════════════════════════════════════")
         
         try {
-            // Test with multiple amounts including very small wei values
-            val testAmounts = listOf(
-                "1", // 1 wei (very small amount)
-                "1000", // 1000 wei (still very small)
-                "1000000000000000000", // 1 USDT in Wei (1 * 10^18)
-                "4500000000000000000" // 4.5 USDT in Wei (4.5 * 10^18)
+            // 단일 테스트 금액 (4.5 USDT)
+            val testAmount = "4500000000000000000" // 4.5 USDT in Wei
+            
+            Log.i(TAG, "테스트 영수증 - Wei 금액: $testAmount")
+            
+            val testReceiptData = ReceiptData(
+                printId = "TEST-${System.currentTimeMillis()}",
+                transactionHash = "0x1234567890abcdef1234567890abcdef12345678",
+                amount = testAmount,
+                token = "USDT",
+                fromAddress = "0xabc123def456789012345678901234567890abcd",
+                toAddress = "0xdef456789012345678901234567890abcdef1234",
+                timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()),
+                productName = "CUBE COFFEE"
             )
             
-            testAmounts.forEachIndexed { index, amount ->
-                Log.i(TAG, "테스트 ${index + 1}/4 - Wei 금액: $amount")
-                
-                val testReceiptData = ReceiptData(
-                    printId = "TEST-${System.currentTimeMillis()}-$index",
-                    transactionHash = "0x1234567890abcdef1234567890abcdef12345678",
-                    amount = amount,
-                    token = "USDT",
-                    fromAddress = "0xabc123def456789012345678901234567890abcd",
-                    toAddress = "0xdef456789012345678901234567890abcdef1234",
-                    timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()),
-                    productName = "CUBE COFFEE"
-                )
-                
-                // Log the formatted amount for verification
-                val formattedAmount = formatAmount(testReceiptData.amount, testReceiptData.token)
-                Log.i(TAG, "Wei 금액 변환 결과: $amount wei -> $formattedAmount")
-                
-                // Generate English receipt
-                val testData = printerHelperEnglish.createTransactionReceipt(testReceiptData)
-                
-                // Send to printer
-                printer.setBuffer(testData)
-                printer.print()
-                
-                // Wait between prints
-                Thread.sleep(2000)
-            }
+            // Log the formatted amount for verification
+            val formattedAmount = formatAmount(testReceiptData.amount, testReceiptData.token)
+            Log.i(TAG, "Wei 금액 변환 결과: $testAmount wei -> $formattedAmount")
             
-            Log.i(TAG, "✅ All test printings completed")
+            // Generate English receipt
+            val testData = printerHelperEnglish.createTransactionReceipt(testReceiptData)
+            
+            // Send to printer
+            printer.setBuffer(testData)
+            printer.print()
+            
+            // 테스트 영수증 출력 시작 즉시 감사 이미지 표시
+            mainActivity?.showThankYouImage()
+            Log.i(TAG, "🎉 테스트 영수증 출력 시작 - 즉시 감사 이미지 표시")
+            
+            Log.i(TAG, "✅ Test printing completed")
+            
         } catch (e: Exception) {
             Log.e(TAG, "❌ Test printing failed: ${e.message}")
         }
@@ -138,10 +144,15 @@ class AutoPrintManager {
             printer.setBuffer(printData)
             printer.print()
             
+            // 영수증 출력 시작 즉시 감사 이미지 표시
+            mainActivity?.showThankYouImage()
+            Log.i(TAG, "🎉 영수증 출력 시작 - 즉시 감사 이미지 표시")
+            
             // Wait for printing completion
             Thread.sleep(3000)
             
             Log.i(TAG, "✅ Auto receipt printing completed - ID: ${receiptData.printId}")
+            
             true
             
         } catch (e: Exception) {
