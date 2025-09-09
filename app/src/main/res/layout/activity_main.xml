@@ -36,7 +36,7 @@
 
             <ImageView
                 android:id="@+id/iv_payment_qr"
-                android:layout_width="340dp"
+                android:layout_width="320dp"
                 android:layout_height="360dp"
                 android:scaleType="fitCenter"
                 android:background="@android:color/transparent" />
